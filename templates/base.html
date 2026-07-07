@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Jindal Steel SAF Control Room{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body class="jindal-brand-theme">
+    <div class="app-shell">
+        <aside class="jindal-sidebar">
+            <div class="brand-logo-section">
+                <h2>JINDAL <span>STEEL</span></h2>
+                <small class="tagline">Control Room Engine</small>
+            </div>
+            <hr class="sidebar-divider">
+            <nav class="sidebar-links-matrix">
+                <a href="/overview" class="nav-link {% if request.path == '/overview' or request.path == '/' %}active{% endif %}">🖥️ Dashboard Overview</a>
+                <a href="/trends" class="nav-link {% if request.path == '/trends' %}active{% endif %}">📈 KPI Trends</a>
+                <a href="/logistics" class="nav-link {% if request.path == '/logistics' %}active{% endif %}">🚛 Stock Yard Matrix</a>
+                <a href="/power" class="nav-link {% if request.path == '/power' %}active{% endif %}">⚡ Power Analytics</a>
+                <a href="/analysis" class="sidebar-link {% if request.path == '/analysis' %}active{% endif %}" style="padding: 12px 20px; color: #cbd5e0; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+                    📊 Consumption vs Efficiency
+                </a>
+            </nav>
+        </aside>
+        
+        <main class="viewport-content-frame">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

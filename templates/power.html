@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .power-blueprint-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+    .furnace-blueprint-card {
+        background-color: var(--jindal-panel-bg);
+        padding: 24px;
+        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+    .blueprint-header {
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #242f36;
+    }
+    .saf1-indicator { color: var(--jindal-saffron); }
+    .saf2-indicator { color: var(--jindal-twilight-blue); }
+    
+    .inner-kpi-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .inner-kpi-row:last-child { margin-bottom: 0; }
+    .inner-kpi-title { font-size: 13px; color: var(--jindal-grey); text-transform: uppercase; font-weight: 600; }
+    .inner-kpi-val { font-size: 20px; font-weight: 700; color: var(--jindal-white); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="power-viewport-wrapper">
+    <div class="page-header">
+        <h1>⚡ Smelter Power Grid Energy Utilization Engine</h1>
+        <p class="subtitle">Furnace Core Real-Time Power Telemetry & Specific Consumption Norms</p>
+    </div>
+
+    <div class="power-blueprint-grid">
+        <div class="furnace-blueprint-card" style="border-top: 3px solid var(--jindal-saffron);">
+            <div class="blueprint-header saf1-indicator">🔹 SAF - 1 Energy Blueprint</div>
+            <div class="inner-kpi-row">
+                <span class="inner-kpi-title">Total Energy Consumed</span>
+                <span class="inner-kpi-val">28,140.2 MWH</span>
+            </div>
+            <div class="inner-kpi-row">
+                <span class="inner-kpi-title">Specific Energy (SEC Average)</span>
+                <span class="inner-kpi-val" style="color: var(--jindal-saffron);">3.41 MWH/MT</span>
+            </div>
+        </div>
+
+        <div class="furnace-blueprint-card" style="border-top: 3px solid var(--jindal-twilight-blue);">
+            <div class="blueprint-header saf2-indicator">🔸 SAF - 2 Energy Blueprint</div>
+            <div class="inner-kpi-row">
+                <span class="inner-kpi-title">Total Energy Consumed</span>
+                <span class="inner-kpi-val">28,469.8 MWH</span>
+            </div>
+            <div class="inner-kpi-row">
+                <span class="inner-kpi-title">Specific Energy (SEC Average)</span>
+                <span class="inner-kpi-val" style="color: var(--jindal-twilight-blue);">3.43 MWH/MT</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="analytics-row-grid" style="display: block;">
+        <div class="chart-panel-rect" style="border-top: 3px solid var(--jindal-green);">
+            <h4 style="font-size: 15px; text-transform: uppercase; margin-bottom: 20px;">📈 Real-Time Multi-Furnace Efficiency Grid Comparison</h4>
+            <div id="power-telemetry-chart" style="height: 380px; width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const powerTelemetryPayload = {{ (metrics.time_series | default([])) | tojson | safe }};
+</script>
+
+<script src="{{ url_for('static', filename='js/power_charts.js') }}?v=1.1"></script>
+{% endblock %}

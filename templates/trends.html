@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .kpi-selector-container {
+        background-color: var(--jindal-panel-bg); padding: 20px; margin-bottom: 25px;
+        border-left: 4px solid var(--jindal-saffron); display: flex; align-items: center; gap: 20px;
+    }
+    .kpi-label { font-size: 14px; font-weight: 600; color: #a0aec0; text-transform: uppercase; }
+    .jindal-dropdown {
+        background: #12161a; color: white; border: 1px solid var(--jindal-grey);
+        padding: 10px 20px; font-size: 15px; font-family: 'Poppins', sans-serif; font-weight: 600;
+        cursor: pointer; width: 300px;
+    }
+    .jindal-dropdown:focus { border-color: var(--jindal-saffron); outline: none; }
+    
+    /* Weekly Matrix Containers Rules */
+    .weekly-cards-wrapper {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 15px;
+    }
+    .weekly-performance-card {
+        background: #1b2228; border: 1px solid #242f36; padding: 18px; border-radius: 4px; position: relative;
+    }
+    /* HIGHLIGHT CORE BRAND RULE: Best production week borders highlighted green-gold variant */
+    .weekly-performance-card.best-week-glow {
+        border: 2px solid #508848 !important;
+        background: linear-gradient(145deg, #1b2228 0%, rgba(80, 136, 72, 0.08) 100%);
+    }
+    .best-badge-ribbon {
+        position: absolute; top: 10px; right: 10px; background: #508848; color: white;
+        font-size: 10px; padding: 3px 8px; font-weight: 700; text-transform: uppercase; border-radius: 2px;
+    }
+    .table-container-rect { background-color: var(--jindal-panel-bg); padding: 24px; margin-top: 25px; }
+    .jindal-data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+    .jindal-data-table th { background-color: #12161a; color: var(--jindal-saffron); text-align: left; padding: 12px; border-bottom: 2px solid var(--jindal-grey); }
+    .jindal-data-table td { padding: 12px; border-bottom: 1px solid #202830; color: #cbd5e0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="trends-viewport-container">
+    <div class="page-header">
+        <h1>📈 Operational Performance & KPI Trends</h1>
+        <p class="subtitle">Multi-Dimensional Diagnostic Review Engine</p>
+    </div>
+
+    <div class="kpi-selector-container">
+        <span class="kpi-label">Select Target Parameter:</span>
+        <select id="kpi-dropdown-select" class="jindal-dropdown" onchange="switchKPITrendsCore()">
+            <option value="production">🔥 Furnace Steel Production (MT)</option>
+            <option value="delays">⚠️ Loss Analysis & Breakdown Downtime (Hours)</option>
+            <option value="power">⚡ Specific Power Grid Utilization (SEC)</option>
+        </select>
+    </div>
+
+    <div class="analytics-row-grid" style="display: block; margin-bottom: 25px;">
+        <div class="chart-panel-rect twilight-bg" style="border-top-color: var(--jindal-saffron);">
+            <h4 id="chart-dynamic-title">📊 Production Output Trends</h4>
+            <div id="trends-dynamic-chart" style="height: 380px; width: 100%;"></div>
+            
+            <div class="chart-stats-badges-row">
+                <div class="stat-badge">Avg Rate: <span id="lbl-trends-avg">---</span></div>
+                <div class="stat-badge">Max Peak: <span id="lbl-trends-max">---</span></div>
+                <div class="stat-badge">Min Value: <span id="lbl-trends-min">---</span></div>
+                <div class="stat-badge target-badge">Target Norm: <span id="lbl-trends-target">---</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container-rect" style="margin-top: 25px; border-top: 3px solid #508848;">
+        <h4 style="font-size: 15px; text-transform: uppercase;">📊 Monthly Layered Weekly Analysis Matrix</h4>
+        <p style="font-size:12px; color:#636466; margin-top:2px;">Real-Time aggregation grouped chronologically with peak-performance flag detection.</p>
+        <div id="weekly-cards-grid-target" class="weekly-cards-wrapper">
+            </div>
+    </div>
+
+    <div class="table-container-rect">
+        <h4 style="font-size: 15px; text-transform: uppercase;">📋 Core Historical Ledger Data Table</h4>
+        <table class="jindal-data-table">
+            <thead>
+                <tr id="table-header-row"></tr>
+            </thead>
+            <tbody id="table-body-rows"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const trendsPayloadData = {{ (metrics.time_series | default([])) | tojson | safe }};
+    // Ingest the new weekly calculation maps directly from backend logic pipeline
+    const serverWeeklyAnalysisData = {{ (metrics.weekly_analysis | default([])) | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename='js/trends_charts.js') }}?v=1.2"></script>
+{% endblock %}

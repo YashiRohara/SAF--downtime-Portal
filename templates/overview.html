@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="overview-container">
+    <div class="page-header">
+        <h1>🖥️ SAF Cloud Control Cockpit</h1>
+        <p class="subtitle">Daily Live Tracker Matrix</p>
+    </div>
+
+    <div class="brand-matrix-grid">
+        <div class="matrix-card saffron-border">
+            <span class="card-tag">Yield Parameter</span>
+            <h3>Total Production</h3>
+            <div class="metric-value">
+                <span class="number">{{ "%.1f"|format(metrics.total_production|default(0.0)) }}</span>
+                <span class="unit">MT</span>
+            </div>
+        </div>
+
+        <div class="matrix-card green-border">
+            <span class="card-tag">Efficiency Norm</span>
+            <h3>Average Production / Day</h3>
+            <div class="metric-value">
+                <span class="number">{{ "%.1f"|format(metrics.average_production|default(0.0)) }}</span>
+                <span class="unit">MT/Day</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="analytics-row-grid">
+        <div class="chart-panel-rect twilight-bg">
+            <div class="panel-meta">
+                <h4>📊 Multi-Furnace Telemetry Graph</h4>
+            </div>
+            
+            <div id="production-mini-chart" style="height: 380px; width: 100%;"></div>
+            
+            <div class="chart-stats-badges-row">
+                <div class="stat-badge">Avg: <span id="lbl-avg">Calculating...</span></div>
+                <div class="stat-badge">Max: <span id="lbl-max">Calculating...</span></div>
+                <div class="stat-badge">Min: <span id="lbl-min">Calculating...</span></div>
+                <div class="stat-badge">Data Points: <span id="lbl-count">Calculating...</span></div>
+                <div class="stat-badge target-badge">Target: <span>203.0 MT</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const serverTimeSeriesData = {{ metrics.get('time_series', []) | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
