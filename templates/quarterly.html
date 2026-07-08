@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .quarterly-filter-bar {
+        background-color: var(--jindal-panel-bg); padding: 20px; margin-bottom: 25px;
+        border-left: 4px solid var(--jindal-green); display: flex; align-items: center; gap: 20px;
+    }
+    .toggle-dropdown {
+        background: #12161a; color: white; border: 1px solid var(--jindal-grey);
+        padding: 10px 20px; font-size: 15px; font-family: 'Poppins'; font-weight: 600; cursor: pointer; width: 250px;
+    }
+    .highlight-badge-card {
+        background: #1b2228; border: 1px solid #242f36; padding: 20px; position: relative; border-radius: 4px;
+    }
+    .highlight-badge-card.crown-gold {
+        border: 2px solid #508848 !important;
+        background: linear-gradient(145deg, #1b2228 0%, rgba(80, 136, 72, 0.08) 100%);
+    }
+    .crown-tag {
+        position: absolute; top: 12px; right: 12px; background: #508848; color: white;
+        font-size: 10px; padding: 3px 8px; font-weight: 700; text-transform: uppercase; border-radius: 2px;
+    }
+    .matrix-cards-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="quarterly-viewport">
+    <div class="page-header">
+        <h1>📊 Corporate Quarterly Analysis Center</h1>
+        <p class="subtitle">Time-Dimension Drilldown: Monthly Cycles & Weekly Breakthroughs</p>
+    </div>
+
+    <div class="quarterly-filter-bar">
+        <span style="font-weight:600; color:#a0aec0; text-transform:uppercase; font-size:13px;">Analysis Window:</span>
+        <select id="analysis-time-toggle" class="toggle-dropdown" onchange="renderQuarterlyView()">
+            <option value="monthly">📅 Monthly Aggregate Analysis</option>
+            <option value="weekly">📆 Weekly Breakdown Sequence</option>
+        </select>
+    </div>
+
+    <div class="analytics-row-grid" style="display: block; margin-bottom: 25px;">
+        <div class="chart-panel-rect" style="border-top-color: var(--jindal-saffron);">
+            <h4 id="quarterly-chart-title">📊 Monthly Aggregation Volume</h4>
+            <div id="quarterly-plotly-chart" style="height: 380px; width: 100%;"></div>
+        </div>
+    </div>
+
+    <h4 style="font-size:15px; text-transform:uppercase; margin-top:30px;">🏆 Period Achievement Rankings Matrix</h4>
+    <div id="quarterly-cards-target" class="matrix-cards-grid">
+        </div>
+</div>
+
+<script>
+    const quarterlyPayload = {{ metrics | tojson | safe }};
+</script>
+<script src="{{ url_for('static', filename='js/quarterly_charts.js') }}?v=1.0"></script>
+{% endblock %}

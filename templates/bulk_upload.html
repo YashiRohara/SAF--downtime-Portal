@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .upload-box-wrapper {
+        background-color: var(--jindal-panel-bg); padding: 30px; border-top: 3px solid var(--jindal-green); max-width: 850px;
+    }
+    .dropzone-container {
+        border: 2px dashed var(--jindal-grey); padding: 40px; text-align: center; background: #12161a;
+        cursor: pointer; margin-bottom: 25px; transition: border-color 0.2s;
+    }
+    .dropzone-container:hover { border-color: var(--jindal-saffron); }
+    .sheet-input-group { display: flex; gap: 15px; margin-top: 10px; }
+    .jindal-btn {
+        background-color: var(--jindal-green); color: white; border: none; padding: 12px 24px;
+        font-family: 'Poppins'; font-weight: 700; cursor: pointer; border-radius: 4px;
+    }
+    .jindal-btn.saffron-variant { background-color: var(--jindal-saffron); }
+    .jindal-input-long {
+        background: #12161a; color: white; border: 1px solid var(--jindal-grey); padding: 12px;
+        font-family: 'Poppins'; font-size: 14px; flex-grow: 1; border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bulk-upload-viewport">
+    <div class="page-header">
+        <h1>📤 Enterprise Bulk Ingestion Hub</h1>
+        <p class="subtitle">Multi-Source Sync: Upload Excel, CSV or Sync via Google Sheets API</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div style="background-color: rgba(80, 136, 72, 0.15); border: 1px solid #508848; color: #cbd5e0; padding: 15px; margin-bottom: 25px; font-size: 14px;">
+              🟢 {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="upload-box-wrapper">
+        <form action="/bulk_upload" method="POST" enctype="multipart/form-data">
+            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-saffron); margin-bottom: 15px;">📁 Upload Flat Files (.XLSX, .CSV)</h4>
+            <div class="dropzone-container" onclick="document.getElementById('file-native-picker').click()">
+                <input type="file" id="file-native-picker" name="bulk_file" style="display:none;" onchange="this.form.submit()">
+                <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
+                <span style="font-size:14px; color:#cbd5e0; font-weight:600;">Drag & Drop files here or <b style="color:var(--jindal-saffron);">Browse</b></span>
+                <p style="font-size:11px; color:#636466; margin-top:5px;">Supports structural MIS spreadsheets up to 25MB.</p>
+            </div>
+        </form>
+
+        <hr style="border:0; border-top:1px solid #242f36; margin: 35px 0;">
+
+        <form action="/bulk_upload" method="POST">
+            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-green); margin-bottom: 10px;">🌐 Cloud Stream: Google Sheets Live URL</h4>
+            <div class="sheet-input-group">
+                <input type="url" name="gsheet_url" class="jindal-input-long" placeholder="https://docs.google.com/spreadsheets/d/..." required>
+                <button type="submit" class="jindal-btn">🔄 Synchronize</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

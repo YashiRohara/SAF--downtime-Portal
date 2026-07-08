@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .form-container-panel {
+        background-color: var(--jindal-panel-bg); padding: 30px; border-top: 3px solid var(--jindal-saffron); max-width: 800px;
+    }
+    .form-group-row {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;
+    }
+    .input-field-wrapper { display: flex; flex-direction: column; gap: 8px; }
+    .input-field-wrapper label { font-size: 12px; color: #a0aec0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .jindal-input {
+        background: #12161a; color: white; border: 1px solid var(--jindal-grey); padding: 12px;
+        font-family: 'Poppins'; font-size: 14px; border-radius: 4px;
+    }
+    .jindal-input:focus { border-color: var(--jindal-saffron); outline: none; }
+    .submit-btn-jindal {
+        background-color: var(--jindal-saffron); color: white; border: none; padding: 14px 30px;
+        font-family: 'Poppins'; font-weight: 700; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: background 0.2s;
+    }
+    .submit-btn-jindal:hover { background-color: #d66315; }
+    .alert-banner-success {
+        background-color: rgba(80, 136, 72, 0.15); border: 1px solid #508848; color: #cbd5e0; padding: 15px; margin-bottom: 25px; font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manual-entry-viewport">
+    <div class="page-header">
+        <h1>📝 Furnace Telemetry Manual Ledger Entry</h1>
+        <p class="subtitle">Secure Operational Data Ingestion Hub</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert-banner-success">🟢 {{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-container-panel">
+        <form action="/manual_entry" method="POST">
+            
+            <div class="form-group-row">
+                <div class="input-field-wrapper">
+                    <label>Operational Date *</label>
+                    <input type="date" name="entry_date" class="jindal-input" required>
+                </div>
+            </div>
+
+            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-saffron); margin: 25px 0 15px 0; border-bottom:1px solid #242f36; padding-bottom:5px;">🔥 Production Metrics (Metric Tons)</h4>
+            <div class="form-group-row">
+                <div class="input-field-wrapper">
+                    <label>SAF - 1 Metal Output</label>
+                    <input type="number" step="0.1" name="saf1_prod" class="jindal-input" placeholder="0.0" required>
+                </div>
+                <div class="input-field-wrapper">
+                    <label>SAF - 2 Metal Output</label>
+                    <input type="number" step="0.1" name="saf2_prod" class="jindal-input" placeholder="0.0" required>
+                </div>
+            </div>
+
+            <h4 style="font-size:13px; text-transform:uppercase; color:#446183; margin: 25px 0 15px 0; border-bottom:1px solid #242f36; padding-bottom:5px;">⚠️ Operational Downtime Logs (Hours)</h4>
+            <div class="form-group-row">
+                <div class="input-field-wrapper">
+                    <label>Operational Delay (Oprn)</label>
+                    <input type="number" step="0.1" name="delay_oprn" class="jindal-input" placeholder="0.0" default="0.0">
+                </div>
+                <div class="input-field-wrapper">
+                    <label>Mechanical Breakdown (Mech)</label>
+                    <input type="number" step="0.1" name="delay_mech" class="jindal-input" placeholder="0.0" default="0.0">
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; text-align: right;">
+                <button type="submit" class="submit-btn-jindal">📥 Commit Log to Database</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

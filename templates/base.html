@@ -3,34 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Jindal Steel SAF Control Room{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    {% block extra_css %}{% endblock %}
+    <title>Jindal Steel - SAF Control Room</title>
+    
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-</head>
-<body class="jindal-brand-theme">
-    <div class="app-shell">
-        <aside class="jindal-sidebar">
-            <div class="brand-logo-section">
-                <h2>JINDAL <span>STEEL</span></h2>
-                <small class="tagline">Control Room Engine</small>
-            </div>
-            <hr class="sidebar-divider">
-            <nav class="sidebar-links-matrix">
-                <a href="/overview" class="nav-link {% if request.path == '/overview' or request.path == '/' %}active{% endif %}">🖥️ Dashboard Overview</a>
-                <a href="/trends" class="nav-link {% if request.path == '/trends' %}active{% endif %}">📈 KPI Trends</a>
-                <a href="/logistics" class="nav-link {% if request.path == '/logistics' %}active{% endif %}">🚛 Stock Yard Matrix</a>
-                <a href="/power" class="nav-link {% if request.path == '/power' %}active{% endif %}">⚡ Power Analytics</a>
-                <a href="/analysis" class="sidebar-link {% if request.path == '/analysis' %}active{% endif %}" style="padding: 12px 20px; color: #cbd5e0; text-decoration: none; display: flex; align-items: center; gap: 10px;">
-                    📊 Consumption vs Efficiency
-                </a>
-            </nav>
-        </aside>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --jindal-saffron: #f47920;
+            --jindal-twilight-blue: #446183;
+            --jindal-green: #508848;
+            --jindal-panel-bg: #1b2228;
+            --jindal-grey: #242f36;
+            --jindal-white: #ffffff;
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #0b0f12; 
+            color: #ffffff; 
+        }
         
-        <main class="viewport-content-frame">
-            {% block content %}{% endblock %}
-        </main>
+        .dashboard-wrapper { 
+            display: flex; 
+            min-height: 100vh; 
+        }
+        
+        /* 📐 UNIFORM SIDEBAR SYSTEM FRAMEWORK */
+        .sidebar {
+            width: 260px; 
+            background-color: #12161a; 
+            border-right: 1px solid var(--jindal-grey);
+            padding: 25px 0; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0;
+        }
+        
+        .brand-header { 
+            padding: 0 25px; 
+            margin-bottom: 35px; 
+        }
+        .brand-header h2 { 
+            font-size: 20px; 
+            font-weight: 700; 
+            color: var(--jindal-white); 
+            margin: 0; 
+            letter-spacing: 0.5px; 
+        }
+        .brand-header h2 span { 
+            color: var(--jindal-saffron); 
+        }
+        .brand-header p { 
+            font-size: 11px; 
+            color: #636466; 
+            text-transform: uppercase; 
+            margin: 4px 0 0 0; 
+            font-weight: 600; 
+        }
+
+        .sidebar-menu-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            width: 100%; 
+        }
+        
+        /* ✅ STRICTLY EQUAL FONT SIZES & VERTICAL SPACING GAP RULES */
+        .sidebar-link {
+            padding: 14px 25px; 
+            color: #cbd5e0; 
+            text-decoration: none; 
+            font-size: 14px; 
+            font-weight: 500; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            transition: all 0.2s ease-in-out; 
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-link:hover { 
+            background-color: rgba(255, 255, 255, 0.03); 
+            color: var(--jindal-white); 
+        }
+        
+        .sidebar-link.active {
+            background-color: #1b2228; 
+            color: var(--jindal-white);
+            font-weight: 600; 
+            border-left-color: var(--jindal-saffron);
+        }
+
+        .main-viewport-content { 
+            flex-grow: 1; 
+            padding: 35px; 
+            background-color: #0b0f12; 
+            overflow-y: auto; 
+            box-sizing: border-box;
+        }
+
+        /* 🧼 CLEAN RESPONSIVE FIXES - PREVENTS OVERLAPPING CLUSTER CRASHES */
+        .analytics-row-grid {
+            display: block !important;
+            width: 100% !important;
+            margin-bottom: 30px;
+        }
+
+        .chart-panel-rect, .chart-panel, .dashboard-chart-card {
+            background-color: var(--jindal-panel-bg);
+            padding: 24px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            display: block !important;
+            overflow: hidden;
+        }
+
+        /* 🎨 CRISP HIGH-CONTRAST TYPOGRAPHY PATCH FOR HIDDEN TEXTS */
+        .text-muted, .card-tag, p.subtitle, .inventory-bar-chart-panel p, .table-container-rect p, .rm-panel-box p {
+            color: #a0aec0 !important; /* Premium silver gray readability */
+        }
+
+        /* Fixes the dark text inside blueprint metric card containers */
+        .twilight-bg div, .inventory-bar-chart-panel div, .form-container-panel h4, div[style*="color:#636466"], div[style*="color: rgb(99, 100, 102)"] {
+            color: #cbd5e0 !important;
+        }
+
+        /* Restores exact label visibility across grids and forms */
+        span[style*="color:#a0aec0"], span[style*="color: #a0aec0"], label {
+            color: #cbd5e0 !important;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <div class="brand-header">
+            <h2>JINDAL <span>STEEL</span></h2>
+            <p>Control Room Engine</p>
+        </div>
+        
+        <div class="sidebar-menu-list">
+            <a href="/overview" class="sidebar-link {% if request.path == '/overview' or request.path == '/' %}active{% endif %}">
+                🖥️ Dashboard Overview
+            </a>
+            <a href="/trends" class="sidebar-link {% if request.path == '/trends' %}active{% endif %}">
+                📈 KPI Trends
+            </a>
+            <a href="/logistics" class="sidebar-link {% if request.path == '/logistics' %}active{% endif %}">
+                🚛 Stock Yard Matrix
+            </a>
+            <a href="/raw_material_matrix" class="sidebar-link {% if request.path == '/raw_material_matrix' %}active{% endif %}">
+                🧱 Raw Material Matrix
+            </a>
+            <a href="/power" class="sidebar-link {% if request.path == '/power' %}active{% endif %}">
+                ⚡ Power Analytics
+            </a>
+            <a href="/analysis" class="sidebar-link {% if request.path == '/analysis' %}active{% endif %}">
+                📊 Consumption vs Efficiency
+            </a>
+            <a href="/quarterly" class="sidebar-link {% if request.path == '/quarterly' %}active{% endif %}">
+                🏆 Analysis Performance Board
+            </a>
+            <a href="/manual_entry" class="sidebar-link {% if request.path == '/manual_entry' %}active{% endif %}">
+                📝 Manual Data Entry Form
+            </a>
+            <a href="/bulk_upload" class="sidebar-link {% if request.path == '/bulk_upload' %}active{% endif %}">
+                📤 Bulk Ingestion Hub
+            </a>
+        </div>
     </div>
+
+    <div class="main-viewport-content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
 </body>
 </html>

@@ -1,41 +1,36 @@
+<!-- templates/power.html -->
 {% extends "base.html" %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
 <style>
-    .power-blueprint-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-        gap: 25px;
-        margin-bottom: 30px;
+    .power-grid-deck {
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); 
+        gap: 20px; 
+        margin-bottom: 25px;
     }
-    .furnace-blueprint-card {
-        background-color: var(--jindal-panel-bg);
-        padding: 24px;
-        border: 1px solid rgba(255,255,255,0.05);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    .power-blueprint-card {
+        background-color: var(--jindal-panel-bg); 
+        padding: 24px; 
+        border-radius: 4px; 
+        border-top: 3px solid var(--jindal-saffron);
     }
-    .blueprint-header {
-        font-size: 15px;
-        font-weight: 700;
-        text-transform: uppercase;
+    .power-row-stat {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-top: 15px; 
+        padding: 5px 0;
+    }
+    /* ⚡ CRITICAL FIX: Forces high contrast white/silver color on labels */
+    .power-label-text {
+        font-size: 13px !important; 
+        color: #cbd5e0 !important; 
+        text-transform: uppercase; 
+        font-weight: 600; 
         letter-spacing: 0.5px;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #242f36;
     }
-    .saf1-indicator { color: var(--jindal-saffron); }
-    .saf2-indicator { color: var(--jindal-twilight-blue); }
-    
-    .inner-kpi-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-    .inner-kpi-row:last-child { margin-bottom: 0; }
-    .inner-kpi-title { font-size: 13px; color: var(--jindal-grey); text-transform: uppercase; font-weight: 600; }
-    .inner-kpi-val { font-size: 20px; font-weight: 700; color: var(--jindal-white); }
 </style>
 {% endblock %}
 
@@ -46,43 +41,51 @@
         <p class="subtitle">Furnace Core Real-Time Power Telemetry & Specific Consumption Norms</p>
     </div>
 
-    <div class="power-blueprint-grid">
-        <div class="furnace-blueprint-card" style="border-top: 3px solid var(--jindal-saffron);">
-            <div class="blueprint-header saf1-indicator">🔹 SAF - 1 Energy Blueprint</div>
-            <div class="inner-kpi-row">
-                <span class="inner-kpi-title">Total Energy Consumed</span>
-                <span class="inner-kpi-val">28,140.2 MWH</span>
+    <!-- Section 1: Balanced Blueprints Cards Deck -->
+    <div class="power-grid-deck">
+        
+        <!-- SAF - 1 Core Card Blueprint -->
+        <div class="power-blueprint-card" style="border-top-color: var(--jindal-saffron);">
+            <h4 style="font-size:14px; text-transform:uppercase; color:var(--jindal-saffron); margin:0 0 20px 0;">🔷 SAF - 1 Energy Blueprint</h4>
+            
+            <div class="power-row-stat">
+                <span class="power-label-text">Total Energy Consumed</span>
+                <span style="font-size: 20px; font-weight: 800; color:#ffffff;">28,140.2 <span style="font-size:12px; font-weight:600; color:#a0aec0;">MWH</span></span>
             </div>
-            <div class="inner-kpi-row">
-                <span class="inner-kpi-title">Specific Energy (SEC Average)</span>
-                <span class="inner-kpi-val" style="color: var(--jindal-saffron);">3.41 MWH/MT</span>
+            <div class="power-row-stat" style="margin-top: 10px;">
+                <span class="power-label-text">Specific Energy (SEC Average)</span>
+                <span style="font-size: 18px; font-weight: 800; color:var(--jindal-saffron);">3.41 <span style="font-size:12px; font-weight:600; color:#a0aec0;">MWH/MT</span></span>
             </div>
         </div>
 
-        <div class="furnace-blueprint-card" style="border-top: 3px solid var(--jindal-twilight-blue);">
-            <div class="blueprint-header saf2-indicator">🔸 SAF - 2 Energy Blueprint</div>
-            <div class="inner-kpi-row">
-                <span class="inner-kpi-title">Total Energy Consumed</span>
-                <span class="inner-kpi-val">28,469.8 MWH</span>
+        <!-- SAF - 2 Core Card Blueprint -->
+        <div class="power-blueprint-card" style="border-top-color: var(--jindal-twilight-blue);">
+            <h4 style="font-size:14px; text-transform:uppercase; color:#446183; margin:0 0 20px 0;">🔷 SAF - 2 Energy Blueprint</h4>
+            
+            <div class="power-row-stat">
+                <span class="power-label-text">Total Energy Consumed</span>
+                <span style="font-size: 20px; font-weight: 800; color:#ffffff;">28,469.8 <span style="font-size:12px; font-weight:600; color:#a0aec0;">MWH</span></span>
             </div>
-            <div class="inner-kpi-row">
-                <span class="inner-kpi-title">Specific Energy (SEC Average)</span>
-                <span class="inner-kpi-val" style="color: var(--jindal-twilight-blue);">3.43 MWH/MT</span>
+            <div class="power-row-stat" style="margin-top: 10px;">
+                <span class="power-label-text">Specific Energy (SEC Average)</span>
+                <span style="font-size: 18px; font-weight: 800; color:#446183;">3.43 <span style="font-size:12px; font-weight:600; color:#a0aec0;">MWH/MT</span></span>
             </div>
         </div>
+
     </div>
 
+    <!-- Section 2: Fixed Graph Layout Wrapper Box -->
     <div class="analytics-row-grid" style="display: block;">
-        <div class="chart-panel-rect" style="border-top: 3px solid var(--jindal-green);">
-            <h4 style="font-size: 15px; text-transform: uppercase; margin-bottom: 20px;">📈 Real-Time Multi-Furnace Efficiency Grid Comparison</h4>
-            <div id="power-telemetry-chart" style="height: 380px; width: 100%;"></div>
+        <div class="chart-panel-rect" style="border-top-color: var(--jindal-green); background-color: var(--jindal-panel-bg); padding:24px; position: relative;">
+            <h4 style="font-size: 14px; text-transform: uppercase; margin-bottom:15px; color:#ffffff;">Code Grid Operational Check</h4>
+            <!-- 🎯 Fixed Dimensions Area Placeholder For Plotly Engine -->
+            <div id="power-efficiency-spline-chart" style="height: 380px; width: 100%; display: block;"></div>
         </div>
     </div>
 </div>
 
 <script>
-    const powerTelemetryPayload = {{ (metrics.time_series | default([])) | tojson | safe }};
+    const powerTimelinePayload = {{ (metrics.time_series | default([])) | tojson | safe }};
 </script>
-
-<script src="{{ url_for('static', filename='js/power_charts.js') }}?v=1.1"></script>
+<script src="{{ url_for('static', filename='js/power_charts.js') }}?v=9.9"></script>
 {% endblock %}

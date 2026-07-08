@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
+<style>
+    .rm-grid-row {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px;
+    }
+    .rm-panel-box {
+        background-color: var(--jindal-panel-bg); padding: 24px; border-top: 3px solid var(--jindal-saffron);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="raw-material-viewport">
+    <div class="page-header">
+        <h1>🧱 Strategic Raw Material Matrix</h1>
+        <p class="subtitle">Logistics Supply Chain Tracker: Port Balances vs In-Transit Rakes vs Plant Inventory</p>
+    </div>
+
+    <div class="rm-grid-row">
+        <div class="matrix-card grey-border" style="border-left: 4px solid #446183;">
+            <span class="card-tag">Port Storage</span>
+            <h3>Total Port Balance (Mn Ore)</h3>
+            <div class="metric-value"><span class="number">12,450</span> <span class="unit">MT</span></div>
+            <span style="font-size:12px; color:#a0aec0;">Waiting for Rake Allocation</span>
+        </div>
+        <div class="matrix-card grey-border" style="border-left: 4px solid var(--jindal-saffron);">
+            <span class="card-tag">Logistics Pipeline</span>
+            <h3>In-Transit Material (Rakes)</h3>
+            <div class="metric-value"><span class="number">3,840</span> <span class="unit">MT</span></div>
+            <span style="font-size:12px; color:#f47920;">🟢 2 Rakes Heading to Plant</span>
+        </div>
+        <div class="matrix-card grey-border" style="border-left: 4px solid #508848;">
+            <span class="card-tag">On-Site Stock</span>
+            <h3>Total Plant Yard Inventory</h3>
+            <div class="metric-value"><span class="number">11,813</span> <span class="unit">MT</span></div>
+            <span style="font-size:12px; color:#508848;">Comfortable Buffer Active</span>
+        </div>
+    </div>
+
+    <div class="analytics-row-grid" style="display: block; margin-bottom: 25px;">
+        <div class="rm-panel-box">
+            <h4>📊 Location-wise Material Distribution Breakdown (Port vs Transit vs Plant)</h4>
+            <p style="font-size:12px; color:#636466; margin-bottom:15px;">Comparative view to track raw material volumes across nodes.</p>
+            <div id="rm-location-comparison-chart" style="height: 400px; width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Asset matrix mapping for location tracking
+    const rawMaterialLocationData = [
+        { material: "Mn Ore (High Grade)", port: 4500, transit: 1600, plant: 4183 },
+        { material: "Mn Ore (Low Grade)", port: 7950, transit: 2240, plant: 6274 },
+        { material: "Quartz (10-80mm)", port: 0, transit: 0, plant: 1356 },
+        { material: "Electrode Paste", port: 120, transit: 45, plant: 30 }
+    ];
+</script>
+<script src="{{ url_for('static', filename='js/raw_material_charts.js') }}?v=1.0"></script>
+{% endblock %}
