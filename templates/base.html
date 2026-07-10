@@ -26,59 +26,73 @@
             font-family: 'Poppins', sans-serif; 
             background-color: #0b0f12; 
             color: #ffffff; 
+            overflow-x: hidden;
         }
         
         .dashboard-wrapper { 
             display: flex; 
             min-height: 100vh; 
+            position: relative;
         }
         
-        /* 📐 UNIFORM SIDEBAR SYSTEM FRAMEWORK */
+        /* 📐 STICKY & IMMOVABLE SIDEBAR FRAMEWORK WITH TOGGLE SUPPORT */
         .sidebar {
             width: 260px; 
             background-color: #12161a; 
             border-right: 1px solid var(--jindal-grey);
-            padding: 25px 0; 
+            padding: 20px 0; 
             display: flex; 
             flex-direction: column; 
-            flex-shrink: 0;
+            position: fixed; /* 🔒 Makes sidebar independent of scrolling */
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 999;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .brand-header { 
-            padding: 0 25px; 
-            margin-bottom: 35px; 
+        /* Sidebar Hidden State Class */
+        .sidebar.collapsed-hide {
+            transform: translateX(-260px);
         }
-        .brand-header h2 { 
-            font-size: 20px; 
-            font-weight: 700; 
-            color: var(--jindal-white); 
-            margin: 0; 
-            letter-spacing: 0.5px; 
+        
+        /* 🖼️ LOGO CONTAINER HEADER (TOP-LEFT) - INCREASED DIMENSIONS */
+        .brand-logo-header { 
+            padding: 0 15px;      /* Side padding thoda kam kiya taaki width zyada mile */
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 95px;         /* 🔼 Height ko 75px se badhakar 95px kiya */
+            background-color: transparent;
         }
-        .brand-header h2 span { 
-            color: var(--jindal-saffron); 
+
+        .jindal-official-logo {
+            width: 100%;
+            max-height: 90px;     /* 🔼 Logo height baseline ko 70px se badhakar 90px kiya */
+            object-fit: contain;
+            
+            /* Pehle wale solid filters matched hain */
+            filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(1.1);
+            mix-blend-mode: screen;
         }
-        .brand-header p { 
-            font-size: 11px; 
-            color: #636466; 
-            text-transform: uppercase; 
-            margin: 4px 0 0 0; 
-            font-weight: 600; 
+        .brand-logo-header::after {
+            display: none;
         }
 
         .sidebar-menu-list { 
             display: flex; 
             flex-direction: column; 
-            gap: 8px; 
+            gap: 4px; 
             width: 100%; 
+            overflow-y: auto; /* Allow menu scroll inside if tabs increase */
         }
         
-        /* ✅ STRICTLY EQUAL FONT SIZES & VERTICAL SPACING GAP RULES */
         .sidebar-link {
-            padding: 14px 25px; 
+            padding: 13px 25px; 
             color: #cbd5e0; 
             text-decoration: none; 
-            font-size: 14px; 
+            font-size: 13px; 
             font-weight: 500; 
             display: flex; 
             align-items: center; 
@@ -99,44 +113,65 @@
             border-left-color: var(--jindal-saffron);
         }
 
+        /* 🖥️ DYNAMIC CONTENT VIEWPORT (Adjusts automatically on toggle) */
         .main-viewport-content { 
             flex-grow: 1; 
             padding: 35px; 
+            padding-top: 85px; /* Space for the top floating toggle bar */
             background-color: #0b0f12; 
-            overflow-y: auto; 
+            margin-left: 260px; /* Offset for sticky sidebar */
+            min-height: 100vh;
             box-sizing: border-box;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .main-viewport-content.expanded-full {
+            margin-left: 0;
         }
 
-        /* 🧼 CLEAN RESPONSIVE FIXES - PREVENTS OVERLAPPING CLUSTER CRASHES */
-        .analytics-row-grid {
-            display: block !important;
-            width: 100% !important;
-            margin-bottom: 30px;
+        /* 🎛️ FLOATING TOP TOGGLE ACTIONS BAR */
+        .top-action-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 260px;
+            height: 60px;
+            background-color: rgba(11, 15, 18, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            padding: 0 35px;
+            z-index: 98;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .top-action-navbar.expanded-full {
+            left: 0;
         }
 
-        .chart-panel-rect, .chart-panel, .dashboard-chart-card {
-            background-color: var(--jindal-panel-bg);
-            padding: 24px;
-            margin-bottom: 25px;
+        .menu-toggle-hamburger {
+            background: #1b2228;
+            border: 1px solid var(--jindal-grey);
+            color: #ffffff;
+            font-size: 18px;
+            padding: 8px 14px;
             border-radius: 4px;
-            box-sizing: border-box;
-            display: block !important;
-            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* 🎨 CRISP HIGH-CONTRAST TYPOGRAPHY PATCH FOR HIDDEN TEXTS */
-        .text-muted, .card-tag, p.subtitle, .inventory-bar-chart-panel p, .table-container-rect p, .rm-panel-box p {
-            color: #a0aec0 !important; /* Premium silver gray readability */
+        .menu-toggle-hamburger:hover {
+            background: var(--jindal-grey);
+            color: var(--jindal-saffron);
         }
 
-        /* Fixes the dark text inside blueprint metric card containers */
-        .twilight-bg div, .inventory-bar-chart-panel div, .form-container-panel h4, div[style*="color:#636466"], div[style*="color: rgb(99, 100, 102)"] {
-            color: #cbd5e0 !important;
-        }
-
-        /* Restores exact label visibility across grids and forms */
-        span[style*="color:#a0aec0"], span[style*="color: #a0aec0"], label {
-            color: #cbd5e0 !important;
+        /* CLEAN RESPONSIVE FIXES */
+        .analytics-row-grid { display: block !important; width: 100% !important; margin-bottom: 30px; }
+        .chart-panel-rect, .chart-panel, .dashboard-chart-card {
+            background-color: var(--jindal-panel-bg); padding: 24px; margin-bottom: 25px; border-radius: 4px; box-sizing: border-box; display: block !important; overflow: hidden;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -144,10 +179,10 @@
 <body>
 
 <div class="dashboard-wrapper">
-    <div class="sidebar">
-        <div class="brand-header">
-            <h2>JINDAL <span>STEEL</span></h2>
-            <p>Control Room Engine</p>
+    
+    <div class="sidebar" id="dashboardSidebar">
+        <div class="brand-logo-header">
+            <img src="{{ url_for('static', filename='image/jindal_logo.jpeg') }}" class="jindal-official-logo" alt="Jindal Steel Logo">
         </div>
         
         <div class="sidebar-menu-list">
@@ -178,13 +213,41 @@
             <a href="/bulk_upload" class="sidebar-link {% if request.path == '/bulk_upload' %}active{% endif %}">
                 📤 Bulk Ingestion Hub
             </a>
+            <!-- 🎯 NEW TARGET SETTINGS TAB ADDED HERE -->
+            <a href="/target_settings" class="sidebar-link {% if request.path == '/target_settings' %}active{% endif %}">
+                🎯 Target Settings Hub
+            </a>
         </div>
     </div>
 
-    <div class="main-viewport-content">
+    <div class="top-action-navbar" id="topNavbar">
+        <button class="menu-toggle-hamburger" onclick="executeSidebarToggle()">
+            ☰ <span style="font-size: 12px; margin-left: 8px; font-weight: 600; font-family: 'Poppins';">MENU</span>
+        </button>
+    </div>
+
+    <div class="main-viewport-content" id="mainContentPanel">
         {% block content %}{% endblock %}
     </div>
 </div>
+
+<script>
+    function executeSidebarToggle() {
+        const sidebar = document.getElementById('dashboardSidebar');
+        const content = document.getElementById('mainContentPanel');
+        const navbar = document.getElementById('topNavbar');
+        
+        // Toggle responsive visibility states
+        sidebar.classList.toggle('collapsed-hide');
+        content.classList.toggle('expanded-full');
+        navbar.classList.toggle('expanded-full');
+        
+        // Trigger Plotly dynamic re-resize event so charts expand nicely on toggle animation completion
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 320);
+    }
+</script>
 
 </body>
 </html>

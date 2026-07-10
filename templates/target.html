@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    /* 🎯 TARGET CONTROL CENTER PANEL STYLES */
+    .target-control-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 25px;
+        margin-top: 20px;
+    }
+    .target-sector-card {
+        background-color: var(--jindal-panel-bg);
+        border: 1px solid var(--jindal-grey);
+        border-top: 4px solid var(--jindal-twilight-blue);
+        border-radius: 4px;
+        padding: 24px;
+    }
+    .target-input-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    .target-input-row label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #a0aec0;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .target-field {
+        background-color: #12161a;
+        border: 1px solid var(--jindal-grey);
+        color: #ffffff;
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 4px;
+        font-family: 'Poppins', sans-serif;
+        transition: border-color 0.2s;
+    }
+    .target-field:focus {
+        border-color: var(--jindal-saffron);
+        outline: none;
+    }
+    .submit-baseline-btn {
+        background-color: var(--jindal-saffron);
+        color: #ffffff;
+        border: none;
+        padding: 12px 30px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        transition: background 0.2s;
+    }
+    .submit-baseline-btn:hover {
+        background-color: #d66315;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="target-settings-viewport">
+    <div style="margin-bottom: 30px;">
+        <h1 style="font-size: 26px; font-weight: 700; margin: 0; color: #ffffff;">🎯 Master KPI Target Configuration</h1>
+        <p style="font-size: 13px; color: #a0aec0; margin: 6px 0 0 0;">Operational Threshold Control: Set custom benchmarks for all plant automation nodes into PostgreSQL.</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <div style="background-color: rgba(80, 136, 72, 0.2); border-left: 4px solid var(--jindal-green); padding: 15px; color: #ffffff; font-size: 13px; margin-bottom: 25px; border-radius: 4px; font-weight: 500;">
+                    {{ msg }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form action="/target_settings" method="POST">
+        <div class="target-control-grid">
+            
+            <div class="target-sector-card" style="border-top-color: var(--jindal-saffron);">
+                <h3 style="font-size: 16px; margin: 0 0 20px 0; color: #ffffff;">🏗️ Volumetric Production Targets</h3>
+                <div class="target-input-row">
+                    <label>Daily Production Target Base (MT/Day)</label>
+                    <input type="number" step="0.01" name="target_daily_prod" class="target-field" value="{{ t.daily_prod }}">
+                </div>
+                <div class="target-input-row">
+                    <label>Monthly Cumulative Baseline (MT)</label>
+                    <input type="number" step="0.01" name="target_monthly_prod" class="target-field" value="{{ t.monthly_prod }}">
+                </div>
+                <div class="target-input-row">
+                    <label>Target Production Growth Share (%)</label>
+                    <input type="number" step="0.01" name="target_growth_pct" class="target-field" value="{{ t.growth_pct }}">
+                </div>
+            </div>
+
+            <div class="target-sector-card" style="border-top-color: #446183;">
+                <h3 style="font-size: 16px; margin: 0 0 20px 0; color: #ffffff;">⚡ Specific Power Consumption (SEC)</h3>
+                <div class="target-input-row">
+                    <label>Maximum Allowed SEC Cap (MWh/MT)</label>
+                    <input type="number" step="0.01" name="target_max_sec" class="target-field" value="{{ t.max_sec }}">
+                </div>
+                <div class="target-input-row">
+                    <label>Optimal Efficiency Zone Goal (MWh/MT)</label>
+                    <input type="number" step="0.01" name="target_optimal_sec" class="target-field" value="{{ t.optimal_sec }}">
+                </div>
+            </div>
+
+            <div class="target-sector-card" style="border-top-color: var(--jindal-green);">
+                <h3 style="font-size: 16px; margin: 0 0 20px 0; color: #ffffff;">🔥 Furnace Plant Availability & Utility</h3>
+                <div class="target-input-row">
+                    <label>Minimum Availability Target (%)</label>
+                    <input type="number" step="0.01" name="target_avail_pct" class="target-field" value="{{ t.min_avail }}">
+                </div>
+                <div class="target-input-row">
+                    <label>Capacity Utilization Baseline Goal (%)</label>
+                    <input type="number" step="0.01" name="target_util_pct" class="target-field" value="{{ t.util_pct }}">
+                </div>
+                <div class="target-input-row">
+                    <label>Max Allowed Monthly Delay Cap (Hrs)</label>
+                    <input type="number" step="0.01" name="target_delay_hours" class="target-field" value="{{ t.delay_hours }}">
+                </div>
+            </div>
+
+            <div class="target-sector-card" style="border-top-color: #a3723a;">
+                <h3 style="font-size: 16px; margin: 0 0 20px 0; color: #ffffff;">🚛 Despatch & Logistics Targets</h3>
+                <div class="target-input-row">
+                    <label>Monthly Dispatch Minimum Quota (MT)</label>
+                    <input type="number" step="0.01" name="target_dispatch_vol" class="target-field" value="{{ t.dispatch_vol }}">
+                </div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 30px; text-align: right;">
+            <button type="submit" class="submit-baseline-btn">💾 Deploy Custom Operational Targets</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
