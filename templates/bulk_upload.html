@@ -1,66 +1,147 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAF Portal - Bulk Data Ingestion Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #11141a; /* Dashboard ka premium dark background */
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #1a1f29 !important;
+            border-bottom: 1px solid #2d3748;
+        }
+        .card {
+            background-color: #1a1f29;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-top: 40px;
+        }
+        .card-header {
+            background-color: #242b38;
+            border-bottom: 1px solid #2d3748;
+            color: #fff;
+            font-weight: 600;
+            border-top-left-radius: 12px !important;
+            border-top-right-radius: 12px !important;
+        }
+        .form-control {
+            background-color: #242b38;
+            border: 1px solid #3f4d67;
+            color: #fff;
+        }
+        .form-control:focus {
+            background-color: #242b38;
+            border-color: #4682b4;
+            color: #fff;
+            box-shadow: none;
+        }
+        .sync-box {
+            background-color: rgba(46, 125, 50, 0.15);
+            border: 2px dashed #2e7d32;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-success {
+            background-color: #16a34a;
+            border: none;
+        }
+        .btn-success:hover {
+            background-color: #15803d;
+        }
+    </style>
+</head>
+<body>
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
-<style>
-    .upload-box-wrapper {
-        background-color: var(--jindal-panel-bg); padding: 30px; border-top: 3px solid var(--jindal-green); max-width: 850px;
-    }
-    .dropzone-container {
-        border: 2px dashed var(--jindal-grey); padding: 40px; text-align: center; background: #12161a;
-        cursor: pointer; margin-bottom: 25px; transition: border-color 0.2s;
-    }
-    .dropzone-container:hover { border-color: var(--jindal-saffron); }
-    .sheet-input-group { display: flex; gap: 15px; margin-top: 10px; }
-    .jindal-btn {
-        background-color: var(--jindal-green); color: white; border: none; padding: 12px 24px;
-        font-family: 'Poppins'; font-weight: 700; cursor: pointer; border-radius: 4px;
-    }
-    .jindal-btn.saffron-variant { background-color: var(--jindal-saffron); }
-    .jindal-input-long {
-        background: #12161a; color: white; border: 1px solid var(--jindal-grey); padding: 12px;
-        font-family: 'Poppins'; font-size: 14px; flex-grow: 1; border-radius: 4px;
-    }
-</style>
-{% endblock %}
+    <nav class="navbar navbar-expand-lg navbar-dark px-3">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold text-warning"><i class="fa-solid fa-industry me-2"></i>JINDAL STEEL - SAF CONTROL</span>
+            <div class="d-flex">
+                <a href="/quarterly" class="btn btn-outline-light btn-sm me-2"><i class="fa-solid fa-chart-bar me-1"></i> Quarterly Dashboard</a>
+            </div>
+        </div>
+    </nav>
 
-{% block content %}
-<div class="bulk-upload-viewport">
-    <div class="page-header">
-        <h1>📤 Enterprise Bulk Ingestion Hub</h1>
-        <p class="subtitle">Multi-Source Sync: Upload Excel, CSV or Sync via Google Sheets API</p>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h5 class="mb-0"><i class="fa-solid fa-gears text-warning me-2"></i>Operational Data Ingestion Hub</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-info border-0 text-white bg-secondary mb-3 py-2" role="alert">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <form action="/bulk_upload" method="POST" class="mb-4">
+                            <div class="mb-3">
+                                <label for="gsheet_url" class="form-label fw-bold text-light">Official Google Sheet Integration URL</label>
+                                <input type="text" name="gsheet_url" id="gsheet_url" class="form-control" 
+                                       placeholder="Paste sheet URL here..." value="{% if saved_url %}{{ saved_url }}{% endif %}" required>
+                                
+                                <div class="mt-2">
+                                    {% if saved_url %}
+                                        <span class="text-success small fw-semibold">✅ Active Google Sheet URL is locked into PostgreSQL memory.</span>
+                                    {% else %}
+                                        <span class="text-warning small fw-semibold">⚠️ No persistent cloud URL configured yet.</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Save URL Permanently</button>
+                        </form>
+
+                        {% if saved_url %}
+                        <div class="sync-box text-center">
+                            <h6 class="text-success fw-bold text-uppercase tracking-wider">Live Cloud Synchronization Portal</h6>
+                            <p class="text-muted small">Google Sheet mein entries update karne ke baad niche click karein:</p>
+                            <form action="/sync_now" method="POST">
+                                <button type="submit" class="btn btn-success fw-bold w-100 py-2 shadow-lg">
+                                    ⚡ Click to Refresh & Sync Dashboard
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        <div class="text-center text-muted my-4">— OR —</div>
+
+                        <div class="p-3 rounded border border-secondary" style="background-color: rgba(255,255,255,0.02);">
+                            <h6 class="text-light mb-3 font-weight-bold">Fallback: Bulk File Upload (.XLSX / .CSV)</h6>
+                            <form action="/bulk_upload" method="POST" enctype="multipart/form-data">
+                                <div class="input-group">
+                                    <input type="file" name="bulk_file" id="bulk_file" class="form-control" accept=".csv, .xlsx, .xls">
+                                    <button type="submit" class="btn btn-outline-light">Upload File</button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div> </div>
+        </div>
     </div>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div style="background-color: rgba(80, 136, 72, 0.15); border: 1px solid #508848; color: #cbd5e0; padding: 15px; margin-bottom: 25px; font-size: 14px;">
-              🟢 {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="upload-box-wrapper">
-        <form action="/bulk_upload" method="POST" enctype="multipart/form-data">
-            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-saffron); margin-bottom: 15px;">📁 Upload Flat Files (.XLSX, .CSV)</h4>
-            <div class="dropzone-container" onclick="document.getElementById('file-native-picker').click()">
-                <input type="file" id="file-native-picker" name="bulk_file" style="display:none;" onchange="this.form.submit()">
-                <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                <span style="font-size:14px; color:#cbd5e0; font-weight:600;">Drag & Drop files here or <b style="color:var(--jindal-saffron);">Browse</b></span>
-                <p style="font-size:11px; color:#636466; margin-top:5px;">Supports structural MIS spreadsheets up to 25MB.</p>
-            </div>
-        </form>
-
-        <hr style="border:0; border-top:1px solid #242f36; margin: 35px 0;">
-
-        <form action="/bulk_upload" method="POST">
-            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-green); margin-bottom: 10px;">🌐 Cloud Stream: Google Sheets Live URL</h4>
-            <div class="sheet-input-group">
-                <input type="url" name="gsheet_url" class="jindal-input-long" placeholder="https://docs.google.com/spreadsheets/d/..." required>
-                <button type="submit" class="jindal-btn">🔄 Synchronize</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
