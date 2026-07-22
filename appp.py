@@ -1,95 +1,12 @@
-# appp.py
-from flask import Flask, render_template, jsonify, request, flash, redirect, url_for
+from flask import Flask, render_template, jsonify, request, flash, redirect, url_for, session
+from datetime import datetime, date
+from functools import wraps
 import config
 import pandas as pd
 import numpy as np
-from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
-
-# 🚀 Server start hone par DB tables create/verify karein
-with app.app_context():
-    try:
-        config.init_db()
-        print("✅ PostgreSQL Database Initialized Successfully!")
-    except Exception as e:
-        print(f"⚠️ DB Initialization Error: {e}")
-
-# -------------------------------------------------------------
-# 🔒 DECORATOR: Check if user is logged in
-# -------------------------------------------------------------
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("🔒 Session expired or login required.")
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-# -------------------------------------------------------------
-# 🔑 LOGIN ROUTE (PostgreSQL Version)
-# -------------------------------------------------------------
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        selected_role = request.form.get('role')
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        try:
-            conn = config.get_db_connection()
-            cur = conn.cursor()
-            
-            # PostgreSQL parameterized query
-            cur.execute(
-                "SELECT id, username, password, role, status FROM users WHERE username = %s;", 
-                (username,)
-            )
-            user = cur.fetchone()
-            cur.close()
-            conn.close()
-
-            if user:
-                user_id, db_user, db_pass, db_role, status = user[0], user[1], user[2], user[3], user[4]
-                
-                # Check User Status
-                if status and str(status).lower() not in ['active', '1', 'true']:
-                    flash("⛔ Your account is inactive. Contact Admin.")
-                    return redirect(url_for('login'))
-
-                # Password Validation
-                if db_pass == password:
-                    session['user_id'] = user_id
-                    session['username'] = db_user
-                    session['role'] = db_role
-                    
-                    flash(f"Welcome back, {db_user}!")
-                    return redirect(url_for('overview'))
-                else:
-                    flash("❌ Incorrect Password.")
-            else:
-                flash("❌ User ID not found.")
-
-        except Exception as e:
-            flash(f"⚠️ Database Error: {str(e)}")
-
-        return redirect(url_for('login'))
-
-    return render_template('login.html')
-
-
-# -------------------------------------------------------------
-# 🚪 LOGOUT ROUTE
-# -------------------------------------------------------------
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash("ℹ️ You have logged out successfully.")
-    return redirect(url_for('login'))
-
 
 # Call DB initializing script context upon start
 try:
@@ -99,51 +16,66 @@ except Exception as e:
     print(f"💥 PostgreSQL Initialization Fault Trace: {e}")
 
 
+# 🔒 LOGIN REQUIRED DECORATOR
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session and 'username' not in session:
+            flash("🔒 Please login first to access this page.", "warning")
+            return redirect(url_for('overview'))  # Ya login route agar aapke paas hai
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 # 📊 HELPER ENGINES FOR REPORTS & DASHBOARDS
 def get_daily_performance_summary(report_date):
     """
     Fetches real production, MTD totals, and FY Month-wise ABP vs Actual performance from PostgreSQL.
     """
-    conn = config.get_db_connection()
-    cur = conn.cursor()
-    
-    # 1. On Date Metrics
-    cur.execute("""
-        SELECT steel_yield, power_ingested, saf1_steel_yield, saf2_steel_yield
-        FROM saf_production_data 
-        WHERE log_date = %s;
-    """, (report_date,))
-    row = cur.fetchone()
-    
-    # 2. Target values from kpi_targets
-    cur.execute("SELECT daily_prod FROM kpi_targets WHERE id = 1;")
-    t_row = cur.fetchone()
-    target_prod = float(t_row[0]) if t_row else 203.0
-    
-    # 3. Month-to-Date (MTD) Cumulative
-    cur.execute("""
-        SELECT SUM(steel_yield)
-        FROM saf_production_data 
-        WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date);
-    """, (report_date,))
-    mtd_row = cur.fetchone()
-    
-    # 4. Month-wise Aggregations for Financial Year (April to March)
-    cur.execute("""
-        SELECT 
-            TO_CHAR(log_date, 'Mon') as mon_name,
-            SUM(COALESCE(saf1_steel_yield, steel_yield / 2.0)) as saf1_total,
-            SUM(COALESCE(saf2_steel_yield, steel_yield / 2.0)) as saf2_total,
-            SUM(steel_yield) as plant_total,
-            SUM(power_ingested) as power_total
-        FROM saf_production_data
-        GROUP BY TO_CHAR(log_date, 'Mon'), DATE_TRUNC('month', log_date)
-        ORDER BY DATE_TRUNC('month', log_date);
-    """)
-    monthly_db_rows = cur.fetchall()
-    
-    cur.close()
-    conn.close()
+    try:
+        conn = config.get_db_connection()
+        cur = conn.cursor()
+        
+        # 1. On Date Metrics
+        cur.execute("""
+            SELECT steel_yield, power_ingested, saf1_steel_yield, saf2_steel_yield
+            FROM saf_production_data 
+            WHERE log_date = %s;
+        """, (report_date,))
+        row = cur.fetchone()
+        
+        # 2. Target values from kpi_targets
+        cur.execute("SELECT daily_prod FROM kpi_targets WHERE id = 1;")
+        t_row = cur.fetchone()
+        target_prod = float(t_row[0]) if t_row else 203.0
+        
+        # 3. Month-to-Date (MTD) Cumulative
+        cur.execute("""
+            SELECT SUM(steel_yield)
+            FROM saf_production_data 
+            WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date);
+        """, (report_date,))
+        mtd_row = cur.fetchone()
+        
+        # 4. Month-wise Aggregations for Financial Year (April to March)
+        cur.execute("""
+            SELECT 
+                TO_CHAR(log_date, 'Mon') as mon_name,
+                SUM(COALESCE(saf1_steel_yield, steel_yield / 2.0)) as saf1_total,
+                SUM(COALESCE(saf2_steel_yield, steel_yield / 2.0)) as saf2_total,
+                SUM(steel_yield) as plant_total,
+                SUM(power_ingested) as power_total
+            FROM saf_production_data
+            GROUP BY TO_CHAR(log_date, 'Mon'), DATE_TRUNC('month', log_date)
+            ORDER BY DATE_TRUNC('month', log_date);
+        """)
+        monthly_db_rows = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Error in get_daily_performance_summary: {e}")
+        return {}
     
     # Monthly Financial Mapping (Apr - Mar)
     months_order = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
@@ -224,21 +156,25 @@ def get_monthly_delay_breakdown(report_date):
     """
     Fetches daily delay logs (Oprn, Mech, E&I, Mgmt) for the entire month of the selected report date.
     """
-    conn = config.get_db_connection()
-    cur = conn.cursor()
-    
-    cur.execute("""
-        SELECT log_date, 
-               saf1_oprn_delay, saf1_mech_delay, saf1_ei_delay, saf1_mgmt_delay, saf1_delay_reason,
-               saf2_oprn_delay, saf2_mech_delay, saf2_ei_delay, saf2_mgmt_delay, saf2_delay_reason,
-               delay_hours
-        FROM saf_production_data 
-        WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date)
-        ORDER BY log_date ASC;
-    """, (report_date,))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    try:
+        conn = config.get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT log_date, 
+                   saf1_oprn_delay, saf1_mech_delay, saf1_ei_delay, saf1_mgmt_delay, saf1_delay_reason,
+                   saf2_oprn_delay, saf2_mech_delay, saf2_ei_delay, saf2_mgmt_delay, saf2_delay_reason,
+                   delay_hours
+            FROM saf_production_data 
+            WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date)
+            ORDER BY log_date ASC;
+        """, (report_date,))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Error in get_monthly_delay_breakdown: {e}")
+        return []
     
     delay_records = []
     for r in rows:
@@ -296,9 +232,9 @@ def fetch_database_metrics():
         print(f"⚠️ Failover Reading DB Analytics: {e}")
         return []
 
+
 @app.route('/')
 @app.route('/overview')
-@login_required
 def overview():
     try:
         conn = config.get_db_connection()
@@ -321,21 +257,18 @@ def overview():
 
 
 @app.route('/raw_material_matrix')
-@login_required
 def raw_material_matrix():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('raw_material.html', metrics=metrics)
 
 
 @app.route('/power')
-@login_required
 def power():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('power.html', metrics=metrics)
 
 
 @app.route('/target_settings', methods=['GET', 'POST'])
-@login_required
 def target_settings():
     conn = config.get_db_connection()
     cur = conn.cursor()
@@ -359,7 +292,7 @@ def target_settings():
         """, (daily_prod, monthly_prod, growth_pct, max_sec, optimal_sec, min_avail, util_pct, delay_hours, dispatch_vol))
         
         conn.commit()
-        flash("🎯 Operational benchmarks successfully saved and distributed across DB pipelines.")
+        flash("🎯 Operational benchmarks successfully saved and distributed across DB pipelines.", "success")
         cur.close()
         conn.close()
         return redirect(url_for('target_settings'))
@@ -378,7 +311,6 @@ def target_settings():
 
 
 @app.route('/trends')
-@login_required
 def trends():
     db_series = fetch_database_metrics()
     
@@ -410,10 +342,16 @@ def trends():
 
 
 @app.route('/logistics')
-def logistics(): return render_template('logistics.html')
+@login_required
+def logistics():
+    return render_template(
+        'logistics.html', 
+        username=session.get('username'),
+        role=session.get('role')
+    )
+
 
 @app.route('/analysis')
-@login_required
 def analysis():
     try:
         metrics = {"time_series": fetch_database_metrics()}
@@ -424,7 +362,6 @@ def analysis():
 
 
 @app.route('/quarterly')
-@login_required
 def quarterly():
     db_series = fetch_database_metrics()
     
@@ -500,18 +437,13 @@ def quarterly():
 
 
 @app.route('/manual_entry', methods=['GET', 'POST'])
-@login_required
 def manual_entry():
-    if session.get('role') == 'Viewer':
-            flash("⛔ Access Restricted: Viewers cannot perform Manual Entry.")
-            return redirect(url_for('overview'))
-    
     if request.method == 'POST':
         try:
             log_date = request.form.get('log_date') or request.form.get('date') or request.form.get('target_date')
             
             if not log_date or log_date.strip() == '':
-                flash("❌ Operation Blocked: Please select a valid Date from the calendar before submitting!")
+                flash("❌ Operation Blocked: Please select a valid Date from the calendar before submitting!", "danger")
                 return redirect(url_for('manual_entry'))
                 
             power = float(request.form.get('power_ingested', 0) or 0)
@@ -532,21 +464,16 @@ def manual_entry():
             conn.commit()
             cur.close()
             conn.close()
-            flash("🎯 Manual furnace log logged permanently into PostgreSQL.")
+            flash("🎯 Manual furnace log logged permanently into PostgreSQL.", "success")
         except Exception as e:
-            flash(f"❌ Manual Entry Failed: {e}")
+            flash(f"❌ Manual Entry Failed: {e}", "danger")
         return redirect(url_for('manual_entry'))
-
         
     return render_template('data_entry.html')
 
 
 @app.route('/bulk_upload', methods=['GET', 'POST'])
 def bulk_upload():
-    if session.get('role') == 'Viewer':
-        flash("⛔ Access Restricted: Viewers cannot access Bulk Upload.")
-        return redirect(url_for('overview'))
-
     conn = config.get_db_connection()
     cur = conn.cursor()
     
@@ -566,10 +493,10 @@ def bulk_upload():
                 cur.execute("DELETE FROM gsheet_config;")
                 cur.execute("INSERT INTO gsheet_config (url) VALUES (%s);", (url,))
                 conn.commit()
-                flash("🎯 Success: Official Google Sheet URL saved permanently!")
+                flash("🎯 Success: Official Google Sheet URL saved permanently!", "success")
             except Exception as e:
                 conn.rollback()
-                flash(f"❌ Error saving URL: {e}")
+                flash(f"❌ Error saving URL: {e}", "danger")
                 
         elif 'bulk_file' in request.files:
             file = request.files['bulk_file']
@@ -595,9 +522,9 @@ def bulk_upload():
                         """, (log_date, yield_mt))
                         inserted_rows += 1
                     conn.commit()
-                    flash(f"📁 Local file processed! Imported {inserted_rows} rows.")
+                    flash(f"📁 Local file processed! Imported {inserted_rows} rows.", "success")
                 except Exception as e:
-                    flash(f"❌ Local File Error: {e}")
+                    flash(f"❌ Local File Error: {e}", "danger")
 
     cur.execute("SELECT url FROM gsheet_config ORDER BY id DESC LIMIT 1;")
     saved_url_row = cur.fetchone()
@@ -618,7 +545,7 @@ def sync_now():
     url_row = cur.fetchone()
     
     if not url_row:
-        flash("❌ Sync Blocked: No Google Sheet URL configured yet!")
+        flash("❌ Sync Blocked: No Google Sheet URL configured yet!", "danger")
         cur.close()
         conn.close()
         return redirect(url_for('bulk_upload'))
@@ -679,9 +606,9 @@ def sync_now():
             inserted_rows += 1
         
         conn.commit()
-        flash(f"🚀 Success: Database dynamically refreshed with {inserted_rows} live entries!")
+        flash(f"🚀 Success: Database dynamically refreshed with {inserted_rows} live entries!", "success")
     except Exception as e:
-        flash(f"❌ Dynamic Sync Fault: {e}")
+        flash(f"❌ Dynamic Sync Fault: {e}", "danger")
     finally:
         cur.close()
         conn.close()
@@ -705,13 +632,12 @@ def view_reports():
         selected_date=report_date, 
         active_report=active_report, 
         perf=perf, 
-        delays=delays
+        delays=delays,
+        username=session.get('username'),
+        role=session.get('role')
     )
 
 
 if __name__ == '__main__':
     # 🌐 Configured for Jindal Steel Local Network / Server Deployment
     app.run(host='0.0.0.0', port=8989, debug=True)
-'''if __name__ == '__main__':
-    app.run(debug=True, port=5000)'''
-    
