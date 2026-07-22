@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Executive Dark Dashboard Styles (Screen View) */
+    .mis-container {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #ffffff;
+        font-size: 11px;
+    }
+    .mis-card {
+        background-color: #161c22;
+        border: 1px solid #32404d;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 12px;
+    }
+    .mis-table {
+        background-color: #0e1215;
+        color: #ffffff;
+        font-size: 10.5px;
+        border-color: #32404d !important;
+        margin-bottom: 0;
+    }
+    .mis-table th {
+        background-color: #1f2830 !important;
+        color: #f47920 !important;
+        text-align: center;
+        vertical-align: middle;
+        border-color: #32404d !important;
+        padding: 3px 5px;
+        font-weight: 600;
+    }
+    .mis-table td {
+        border-color: #242d35 !important;
+        vertical-align: middle;
+        text-align: center;
+        padding: 3px 5px;
+    }
+    .sub-th {
+        background-color: #182026 !important;
+        color: #b0bec5 !important;
+    }
+    .text-warning-val { color: #ffb74d; font-weight: bold; }
+    .text-success-val { color: #4caf50; font-weight: bold; }
+
+    /* 🖨️ A4 LANDSCAPE PRINT RULES (OFFICIAL PDF EXACT MATCH) */
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+        body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 8.5pt !important;
+        }
+        .no-print, nav, sidebar, .navbar, .btn, form {
+            display: none !important;
+        }
+        .mis-card {
+            background-color: #ffffff !important;
+            border: 1px solid #000000 !important;
+            padding: 4px !important;
+            margin-bottom: 6px !important;
+            box-shadow: none !important;
+        }
+        .mis-table {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 7.5pt !important;
+            border: 1px solid #000000 !important;
+        }
+        .mis-table th {
+            background-color: #e0e0e0 !important;
+            color: #000000 !important;
+            border: 1px solid #000000 !important;
+            font-weight: bold !important;
+            padding: 2px !important;
+        }
+        .mis-table td {
+            border: 1px solid #000000 !important;
+            color: #000000 !important;
+            padding: 2px !important;
+        }
+        .sub-th {
+            background-color: #f2f2f2 !important;
+            color: #000000 !important;
+        }
+        .text-warning, .text-warning-val, .text-success-val {
+            color: #000000 !important;
+            font-weight: bold;
+        }
+    }
+</style>
+
+<div class="container-fluid mis-container">
+    
+    <!-- 🔍 ONSCREEN FILTER BAR -->
+    <div class="mis-card d-flex justify-content-between align-items-center no-print">
+        <form id="reportFilterForm" method="GET" action="/reports" class="d-flex align-items-center justify-content-between w-100 gap-3">
+            
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="fw-bold mb-0 text-warning" style="white-space: nowrap;">Jindal Steel MIS Engine</h5>
+                
+                <!-- DROPDOWN SELECTOR -->
+                <select name="report_type" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 250px;" onchange="document.getElementById('reportFilterForm').submit();">
+                    <option value="daily" {% if active_report == 'daily' or not active_report %}selected{% endif %}>📊 Daily Executive MIS Sheet</option>
+                    <option value="delay" {% if active_report == 'delay' %}selected{% endif %}>⏱️ Delay Log Breakdown</option>
+                    <option value="monthly" {% if active_report == 'monthly' %}selected{% endif %}>📅 Monthly ABP Summary</option>
+                </select>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <input type="date" name="report_date" value="{{ selected_date }}" class="form-control form-control-sm bg-dark text-white border-secondary" onchange="document.getElementById('reportFilterForm').submit();">
+                <button type="button" onclick="window.print()" class="btn btn-sm btn-warning fw-bold text-nowrap">
+                    <i class="fas fa-print"></i> Print / Export A4 PDF
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- PRINT HEADER (ONLY VISIBLE IN PRINT/PDF) -->
+    <div class="d-none d-print-block text-center mb-1">
+        <h5 class="fw-bold mb-0" style="color: #000;">JINDAL STEEL & POWER LTD., RAIGARH</h5>
+        <p class="mb-0 fw-bold" style="font-size: 9pt;">Submerged Arc Furnace - Daily Performance Report | Date: {{ selected_date }}</p>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- 📊 MODULE 1: DAILY EXECUTIVE MIS SHEET -->
+    <!-- ========================================================== -->
+    {% if active_report == 'daily' or not active_report %}
+    <!-- 1. DAILY PRODUCTION PERFORMANCE SUMMARY TABLE -->
+    <div class="mis-card">
+        <div class="table-responsive">
+            <table class="table table-bordered mis-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Production</th>
+                        <th colspan="3">SAF #1</th>
+                        <th colspan="3">SAF #2</th>
+                        <th colspan="3">Total</th>
+                        <th colspan="2">Highest Achieved</th>
+                    </tr>
+                    <tr class="sub-th">
+                        <th>Target</th><th>Actual</th><th>%</th>
+                        <th>Target</th><th>Actual</th><th>%</th>
+                        <th>Target</th><th>Actual</th><th>%</th>
+                        <th>Prod.</th><th>Despatch</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="fw-bold text-start">On date</td>
+                        <td>{{ perf.on_date.saf1.target }}</td>
+                        <td>{{ perf.on_date.saf1.actual }}</td>
+                        <td class="text-success-val">{{ perf.on_date.saf1.pct }}</td>
+                        <td>{{ perf.on_date.saf2.target }}</td>
+                        <td>{{ perf.on_date.saf2.actual }}</td>
+                        <td class="text-success-val">{{ perf.on_date.saf2.pct }}</td>
+                        <td class="fw-bold">{{ perf.on_date.target }}</td>
+                        <td class="fw-bold text-warning-val">{{ perf.on_date.actual }}</td>
+                        <td class="fw-bold text-success-val">{{ perf.on_date.pct }}</td>
+                        <td>224 (20.03.2025)</td>
+                        <td>477 (08.12.2025)</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold text-start">Month Cum.</td>
+                        <td>{{ perf.month_cum.saf1.target }}</td>
+                        <td>{{ perf.month_cum.saf1.actual }}</td>
+                        <td class="text-success-val">{{ perf.month_cum.saf1.pct }}</td>
+                        <td>{{ perf.month_cum.saf2.target }}</td>
+                        <td>{{ perf.month_cum.saf2.actual }}</td>
+                        <td class="text-success-val">{{ perf.month_cum.saf2.pct }}</td>
+                        <td class="fw-bold">{{ perf.month_cum.target }}</td>
+                        <td class="fw-bold text-warning-val">{{ perf.month_cum.actual }}</td>
+                        <td class="fw-bold text-success-val">{{ perf.month_cum.pct }}</td>
+                        <td>6384 (Mar26)</td>
+                        <td>6615 (Mar26)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. DESPATCH & STOCKS GRID -->
+    <div class="row g-2 mb-2">
+        <div class="col-6">
+            <div class="mis-card h-100">
+                <table class="table table-bordered mis-table">
+                    <thead>
+                        <tr class="sub-th">
+                            <th>Despatch</th><th>SMS</th><th>Angul & Nalwa</th><th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="fw-bold text-start">On date</td><td>143</td><td>0</td><td class="fw-bold text-warning-val">143</td></tr>
+                        <tr><td class="fw-bold text-start">Month</td><td>2335</td><td>958</td><td class="fw-bold text-warning-val">3293</td></tr>
+                        <tr><td class="fw-bold text-start">2026-27</td><td>14144</td><td>6146</td><td class="fw-bold text-warning-val">20290</td></tr>
+                        <tr><td class="fw-bold text-start">2025-26</td><td>49671</td><td>19040</td><td class="fw-bold text-warning-val">68711</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="mis-card h-100">
+                <table class="table table-bordered mis-table">
+                    <thead>
+                        <tr class="sub-th">
+                            <th>SiMn Stocks</th><th>SAF</th><th>SMS</th><th>Stores</th><th>Total</th><th>TOC Norms</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="text-start">Normal</td><td>642</td><td>358</td><td>0</td><td>1000</td><td rowspan="4" class="align-middle fw-bold text-info">4500</td></tr>
+                        <tr><td class="text-start">Low Phos</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+                        <tr><td class="text-start">Fines</td><td>1056</td><td>0</td><td>0</td><td>1056</td></tr>
+                        <tr class="fw-bold"><td class="text-start text-warning">Total</td><td>1698</td><td>358</td><td>0</td><td class="text-warning-val">2056</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. RAW MATERIAL CONSUMPTION & STOCKS TABLE -->
+    <div class="mis-card">
+        <div class="table-responsive">
+            <table class="table table-bordered mis-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">RM Consps</th>
+                        <th colspan="2">SAF #1</th>
+                        <th colspan="2">SAF #2</th>
+                        <th colspan="2">Total Plant</th>
+                        <th colspan="3">RM Stocks (T)</th>
+                        <th rowspan="2">TOC Norms</th>
+                    </tr>
+                    <tr class="sub-th">
+                        <th>Qty (T)</th><th>Sp. (T/T)</th>
+                        <th>Qty (T)</th><th>Sp. (T/T)</th>
+                        <th>Qty (T)</th><th>Sp. (T/T)</th>
+                        <th>Plant</th><th>Port</th><th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="text-start">Mn ore (High Gr)</td><td>92</td><td>0.92</td><td>106</td><td>0.92</td><td>198</td><td>0.90</td><td>3474</td><td>2330</td><td>5804</td><td rowspan="3" class="align-middle fw-bold text-info">15000</td></tr>
+                    <tr><td class="text-start">Mn ore (Low Gr)</td><td>62</td><td>0.62</td><td>71</td><td>0.62</td><td>133</td><td>0.60</td><td>8961</td><td>0</td><td>8961</td></tr>
+                    <tr class="fw-bold"><td class="text-start text-warning">Total Mn ore</td><td>154</td><td>1.54</td><td>177</td><td>1.54</td><td>331</td><td class="text-warning-val">1.50</td><td>12435</td><td>2330</td><td class="text-warning-val">14765</td></tr>
+                    <tr><td class="text-start">Nut Coke</td><td>41</td><td>0.41</td><td>47</td><td>0.41</td><td>88</td><td>0.40</td><td>511</td><td>0</td><td>511</td><td>-</td></tr>
+                    <tr><td class="text-start">Raw Coal</td><td>21</td><td>0.21</td><td>24</td><td>0.21</td><td>45</td><td>0.20</td><td>837</td><td>0</td><td>837</td><td>-</td></tr>
+                    <tr class="fw-bold"><td class="text-start text-warning">Total Coke & Coal</td><td>62</td><td>0.62</td><td>71</td><td>0.62</td><td>133</td><td class="text-warning-val">0.60</td><td>1972</td><td>0</td><td class="text-warning-val">1972</td><td>-</td></tr>
+                    <tr><td class="text-start">Quartz</td><td>0</td><td>0.00</td><td>0</td><td>0.00</td><td>0</td><td>0.00</td><td>1356</td><td>0</td><td>1356</td><td>8000</td></tr>
+                    <tr><td class="text-start">Paste</td><td>2</td><td>0.02</td><td>2</td><td>0.018</td><td>4</td><td>0.018</td><td>124</td><td>0</td><td>124</td><td>67</td></tr>
+                    <tr class="fw-bold"><td class="text-start text-warning">Total Power (MWH)</td><td>372</td><td>3.72</td><td>437</td><td>3.80</td><td>809</td><td class="text-warning-val">3.76</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. MONTHLY ABP & ACTUAL PERFORMANCE TREND MATRIX (100% DYNAMIC FROM DB) -->
+    <div class="mis-card">
+        <div class="table-responsive">
+            <table class="table table-bordered mis-table">
+                <thead>
+                    <tr class="sub-th">
+                        <th>Monthly Data</th>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <th>{{ m }}</th>
+                        {% endfor %}
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- SAF ABP Target -->
+                    <tr>
+                        <td class="fw-bold text-start">SAF ABP Target</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td>{{ perf.abp_targets[m] }}</td>
+                        {% endfor %}
+                        <td class="fw-bold text-info">{{ perf.fy_totals.target }}</td>
+                    </tr>
+                    
+                    <!-- SAF-1 Actual Prod -->
+                    <tr>
+                        <td class="text-start">SAF-1 Actual Prod.</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td>{{ perf.monthly_matrix[m].saf1 }}</td>
+                        {% endfor %}
+                        <td>{{ perf.fy_totals.saf1 }}</td>
+                    </tr>
+
+                    <!-- SAF-2 Actual Prod -->
+                    <tr>
+                        <td class="text-start">SAF-2 Actual Prod.</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td>{{ perf.monthly_matrix[m].saf2 }}</td>
+                        {% endfor %}
+                        <td>{{ perf.fy_totals.saf2 }}</td>
+                    </tr>
+
+                    <!-- Total Actual Production -->
+                    <tr class="fw-bold">
+                        <td class="text-start text-warning">Total Actual Prod.</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td>{{ perf.monthly_matrix[m].total }}</td>
+                        {% endfor %}
+                        <td class="text-warning-val">{{ perf.fy_totals.total }}</td>
+                    </tr>
+
+                    <!-- Target Achieved (%) -->
+                    <tr class="fw-bold">
+                        <td class="text-start">Target Achieved (%)</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td class="text-success-val">{{ perf.monthly_matrix[m].pct }}</td>
+                        {% endfor %}
+                        <td class="text-success-val">{{ perf.fy_totals.pct }}</td>
+                    </tr>
+
+                    <!-- Power Specific Rate (SEC) -->
+                    <tr>
+                        <td class="text-start">Power Specific (MWH/T)</td>
+                        {% for m in ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'] %}
+                        <td>{{ perf.monthly_matrix[m].sec }}</td>
+                        {% endfor %}
+                        <td class="fw-bold">{{ perf.fy_totals.sec }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================================================== -->
+    <!-- ⏱️ MODULE 2: DELAY LOG BREAKDOWN VIEW -->
+    <!-- ========================================================== -->
+    {% if active_report == 'delay' %}
+    <div class="mis-card">
+        <h6 class="text-warning mb-2"><i class="fas fa-clock"></i> SAF #1 & SAF #2 Monthly Delay Matrix</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered mis-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Date</th>
+                        <th colspan="6">SAF #1 Delay (Hours)</th>
+                        <th colspan="6">SAF #2 Delay (Hours)</th>
+                    </tr>
+                    <tr class="sub-th">
+                        <th>Oprn</th><th>Mech</th><th>E & I</th><th>Mgmt</th><th>Total</th><th>Reason</th>
+                        <th>Oprn</th><th>Mech</th><th>E & I</th><th>Mgmt</th><th>Total</th><th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if delays %}
+                        {% for d in delays %}
+                        <tr {% if d.date == selected_date %}class="table-active border-warning"{% endif %}>
+                            <td class="fw-bold text-info">{{ d.date }}</td>
+                            <td>{{ "%.2f"|format(d.s1.oprn) }}</td>
+                            <td>{{ "%.2f"|format(d.s1.mech) }}</td>
+                            <td>{{ "%.2f"|format(d.s1.ei) }}</td>
+                            <td>{{ "%.2f"|format(d.s1.mgmt) }}</td>
+                            <td class="fw-bold text-warning">{{ "%.2f"|format(d.s1.total) }}</td>
+                            <td class="small text-muted">{{ d.s1.reason }}</td>
+                            <td>{{ "%.2f"|format(d.s2.oprn) }}</td>
+                            <td>{{ "%.2f"|format(d.s2.mech) }}</td>
+                            <td>{{ "%.2f"|format(d.s2.ei) }}</td>
+                            <td>{{ "%.2f"|format(d.s2.mgmt) }}</td>
+                            <td class="fw-bold text-warning">{{ "%.2f"|format(d.s2.total) }}</td>
+                            <td class="small text-muted">{{ d.s2.reason }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="13" class="text-muted">No delay entries found for this month.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================================================== -->
+    <!-- 📅 MODULE 3: MONTHLY ABP SUMMARY VIEW -->
+    <!-- ========================================================== -->
+    {% if active_report == 'monthly' %}
+    <div class="mis-card">
+        <h6 class="text-warning mb-2"><i class="fas fa-calendar-check"></i> Monthly ABP vs Actual Production Performance Matrix</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered mis-table">
+                <thead>
+                    <tr class="sub-th">
+                        <th>Month Context</th>
+                        <th>SAF #1 Target</th>
+                        <th>SAF #1 Actual</th>
+                        <th>SAF #2 Target</th>
+                        <th>SAF #2 Actual</th>
+                        <th>Total Target</th>
+                        <th>Total Actual</th>
+                        <th>Achieved %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="fw-bold text-info">{{ selected_date[:7] }} (Selected Month)</td>
+                        <td>{{ perf.month_cum.saf1.target }} MT</td>
+                        <td>{{ perf.month_cum.saf1.actual }} MT</td>
+                        <td>{{ perf.month_cum.saf2.target }} MT</td>
+                        <td>{{ perf.month_cum.saf2.actual }} MT</td>
+                        <td class="fw-bold">{{ perf.month_cum.target }} MT</td>
+                        <td class="fw-bold text-warning">{{ perf.month_cum.actual }} MT</td>
+                        <td class="fw-bold text-success">{{ perf.month_cum.pct }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

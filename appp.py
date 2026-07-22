@@ -1,5 +1,5 @@
-# appp.py
 from flask import Flask, render_template, jsonify, request, flash, redirect, url_for
+from datetime import datetime, date
 import config
 import pandas as pd
 import numpy as np
@@ -14,13 +14,178 @@ try:
 except Exception as e:
     print(f"💥 PostgreSQL Initialization Fault Trace: {e}")
 
-# 📊 HELPER ENGINE: Fetch persistent database rows for visual dashboards
+
+# 📊 HELPER ENGINES FOR REPORTS & DASHBOARDS
+def get_daily_performance_summary(report_date):
+    """
+    Fetches real production, MTD totals, and FY Month-wise ABP vs Actual performance from PostgreSQL.
+    """
+    conn = config.get_db_connection()
+    cur = conn.cursor()
+    
+    # 1. On Date Metrics
+    cur.execute("""
+        SELECT steel_yield, power_ingested, saf1_steel_yield, saf2_steel_yield
+        FROM saf_production_data 
+        WHERE log_date = %s;
+    """, (report_date,))
+    row = cur.fetchone()
+    
+    # 2. Target values from kpi_targets
+    cur.execute("SELECT daily_prod FROM kpi_targets WHERE id = 1;")
+    t_row = cur.fetchone()
+    target_prod = float(t_row[0]) if t_row else 203.0
+    
+    # 3. Month-to-Date (MTD) Cumulative
+    cur.execute("""
+        SELECT SUM(steel_yield)
+        FROM saf_production_data 
+        WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date);
+    """, (report_date,))
+    mtd_row = cur.fetchone()
+    
+    # 4. Month-wise Aggregations for Financial Year (April to March)
+    cur.execute("""
+        SELECT 
+            TO_CHAR(log_date, 'Mon') as mon_name,
+            SUM(COALESCE(saf1_steel_yield, steel_yield / 2.0)) as saf1_total,
+            SUM(COALESCE(saf2_steel_yield, steel_yield / 2.0)) as saf2_total,
+            SUM(steel_yield) as plant_total,
+            SUM(power_ingested) as power_total
+        FROM saf_production_data
+        GROUP BY TO_CHAR(log_date, 'Mon'), DATE_TRUNC('month', log_date)
+        ORDER BY DATE_TRUNC('month', log_date);
+    """)
+    monthly_db_rows = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    # Monthly Financial Mapping (Apr - Mar)
+    months_order = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
+    abp_targets = {'Apr': 6014, 'May': 4893, 'Jun': 6014, 'Jul': 6229, 'Aug': 6229, 'Sep': 6014, 'Oct': 6229, 'Nov': 6014, 'Dec': 6229, 'Jan': 6229, 'Feb': 5585, 'Mar': 6229}
+    
+    monthly_matrix = {m: {'saf1': 0.0, 'saf2': 0.0, 'total': 0.0, 'pct': '0.0%', 'sec': '-'} for m in months_order}
+    
+    fy_saf1_sum = 0.0
+    fy_saf2_sum = 0.0
+    fy_total_sum = 0.0
+    fy_power_sum = 0.0
+
+    for r in monthly_db_rows:
+        m_code = r[0] # e.g., 'Apr', 'May'
+        if m_code in monthly_matrix:
+            s1_val = float(r[1] or 0.0)
+            s2_val = float(r[2] or 0.0)
+            tot_val = float(r[3] or 0.0)
+            power_val = float(r[4] or 0.0)
+            
+            target_val = abp_targets.get(m_code, 6000)
+            achieved_pct = round((tot_val / target_val) * 100, 1) if target_val > 0 else 0.0
+            sec_rate = round(power_val / tot_val, 3) if tot_val > 0 else '-'
+            
+            monthly_matrix[m_code] = {
+                'saf1': round(s1_val, 1),
+                'saf2': round(s2_val, 1),
+                'total': round(tot_val, 1),
+                'pct': f"{achieved_pct}%",
+                'sec': sec_rate
+            }
+            
+            fy_saf1_sum += s1_val
+            fy_saf2_sum += s2_val
+            fy_total_sum += tot_val
+            fy_power_sum += power_val
+
+    fy_target_sum = sum(abp_targets.values())
+    fy_pct = round((fy_total_sum / fy_target_sum) * 100, 1) if fy_target_sum > 0 else 0.0
+    fy_sec = round(fy_power_sum / fy_total_sum, 3) if fy_total_sum > 0 else '-'
+
+    actual_total = float(row[0]) if row and row[0] else 0.0
+    power_date = float(row[1]) if row and row[1] else 0.0
+    saf1_act = float(row[2]) if row and row[2] else actual_total / 2
+    saf2_act = float(row[3]) if row and row[3] else actual_total / 2
+    
+    mtd_actual_prod = float(mtd_row[0]) if mtd_row and mtd_row[0] else actual_total
+    
+    pct_on_date = round((actual_total / target_prod) * 100) if target_prod > 0 else 0
+    mtd_target = target_prod * 15
+    pct_mtd = round((mtd_actual_prod / mtd_target) * 100) if mtd_target > 0 else 0
+
+    return {
+        "on_date": {
+            "target": target_prod, "actual": actual_total, "pct": f"{pct_on_date}%", "power": power_date,
+            "saf1": {"target": target_prod / 2, "actual": saf1_act, "pct": f"{pct_on_date}%"},
+            "saf2": {"target": target_prod / 2, "actual": saf2_act, "pct": f"{pct_on_date}%"}
+        },
+        "month_cum": {
+            "target": mtd_target, "actual": mtd_actual_prod, "pct": f"{pct_mtd}%",
+            "saf1": {"target": mtd_target / 2, "actual": mtd_actual_prod / 2, "pct": f"{pct_mtd}%"},
+            "saf2": {"target": mtd_target / 2, "actual": mtd_actual_prod / 2, "pct": f"{pct_mtd}%"}
+        },
+        "monthly_matrix": monthly_matrix,
+        "abp_targets": abp_targets,
+        "fy_totals": {
+            "target": fy_target_sum,
+            "saf1": round(fy_saf1_sum, 1),
+            "saf2": round(fy_saf2_sum, 1),
+            "total": round(fy_total_sum, 1),
+            "pct": f"{fy_pct}%",
+            "sec": fy_sec
+        }
+    }
+
+
+def get_monthly_delay_breakdown(report_date):
+    """
+    Fetches daily delay logs (Oprn, Mech, E&I, Mgmt) for the entire month of the selected report date.
+    """
+    conn = config.get_db_connection()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT log_date, 
+               saf1_oprn_delay, saf1_mech_delay, saf1_ei_delay, saf1_mgmt_delay, saf1_delay_reason,
+               saf2_oprn_delay, saf2_mech_delay, saf2_ei_delay, saf2_mgmt_delay, saf2_delay_reason,
+               delay_hours
+        FROM saf_production_data 
+        WHERE DATE_TRUNC('month', log_date) = DATE_TRUNC('month', %s::date)
+        ORDER BY log_date ASC;
+    """, (report_date,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    delay_records = []
+    for r in rows:
+        base_delay = float(r[11]) if r[11] else 0.0
+        
+        s1_oprn = float(r[1]) if r[1] else 0.0
+        s1_mech = float(r[2]) if r[2] else 0.0
+        s1_ei = float(r[3]) if r[3] else (base_delay / 2 if base_delay > 0 else 0.0)
+        s1_mgmt = float(r[4]) if r[4] else 0.0
+        s1_total = s1_oprn + s1_mech + s1_ei + s1_mgmt
+        
+        s2_oprn = float(r[6]) if r[6] else 0.0
+        s2_mech = float(r[7]) if r[7] else 0.0
+        s2_ei = float(r[8]) if r[8] else (base_delay / 2 if base_delay > 0 else 0.0)
+        s2_mgmt = float(r[9]) if r[9] else 0.0
+        s2_total = s2_oprn + s2_mech + s2_ei + s2_mgmt
+        
+        delay_records.append({
+            "date": r[0].strftime('%Y-%m-%d'),
+            "s1": {"oprn": s1_oprn, "mech": s1_mech, "ei": s1_ei, "mgmt": s1_mgmt, "total": s1_total, "reason": r[5] or "-"},
+            "s2": {"oprn": s2_oprn, "mech": s2_mech, "ei": s2_ei, "mgmt": s2_mgmt, "total": s2_total, "reason": r[10] or "-"}
+        })
+        
+    return delay_records
+
+
 def fetch_database_metrics():
     try:
         conn = config.get_db_connection()
         cur = conn.cursor()
         
-        # Pull actual entries chronologically from PostgreSQL
         cur.execute("""
             SELECT log_date, power_ingested, steel_yield, delay_hours, data_source 
             FROM saf_production_data 
@@ -32,8 +197,6 @@ def fetch_database_metrics():
         
         time_series = []
         for r in rows:
-            # Calculate dynamic SEC Rate (Specific Energy Consumption = Power / Yield)
-            # Avoid divide by zero check
             yield_val = float(r[2]) if r[2] and float(r[2]) > 0 else 1.0
             sec_rate = round(float(r[1]) / yield_val, 2) if r[1] else 0.0
             
@@ -48,6 +211,7 @@ def fetch_database_metrics():
     except Exception as e:
         print(f"⚠️ Failover Reading DB Analytics: {e}")
         return []
+
 
 @app.route('/')
 @app.route('/overview')
@@ -71,15 +235,18 @@ def overview():
         
     return render_template('overview.html', targets=targets)
 
+
 @app.route('/raw_material_matrix')
 def raw_material_matrix():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('raw_material.html', metrics=metrics)
 
+
 @app.route('/power')
 def power():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('power.html', metrics=metrics)
+
 
 @app.route('/target_settings', methods=['GET', 'POST'])
 def target_settings():
@@ -122,17 +289,16 @@ def target_settings():
         
     return render_template('target.html', t=t_data)
 
+
 @app.route('/trends')
 def trends():
     db_series = fetch_database_metrics()
     
-    # Process dynamically aggregated weekly analytics from persistent db rows
     df = pd.DataFrame(db_series)
     weekly_analysis = []
     
     if not df.empty:
         df['Date'] = pd.to_datetime(df['Date'])
-        # Group records by ISO week cycles
         df['Week_Label'] = df['Date'].dt.strftime('Week %U')
         grp = df.groupby('Week_Label')['Production_MT'].agg(['mean', 'max', 'min']).reset_index()
         
@@ -146,7 +312,6 @@ def trends():
                 "IsBest": row['mean'] == max_avg and max_avg > 0
             })
     else:
-        # Balanced layout placeholders if database is empty
         weekly_analysis = [{"Week": "No Database Data Available", "Avg": 0, "Max": 0, "Min": 0, "IsBest": False}]
 
     metrics = {
@@ -155,8 +320,11 @@ def trends():
     }
     return render_template('trends.html', metrics=metrics)
 
+
 @app.route('/logistics')
-def logistics(): return render_template('logistics.html')
+def logistics(): 
+    return render_template('logistics.html')
+
 
 @app.route('/analysis')
 def analysis():
@@ -167,11 +335,11 @@ def analysis():
         print(f"💥 Analysis Route Render Core Error: {e}")
         return f"Template Error: {e}"
 
+
 @app.route('/quarterly')
 def quarterly():
     db_series = fetch_database_metrics()
     
-    # Static fallbacks if database tracking yields nothing
     if not db_series:
         metrics = {
             "monthly_series": [
@@ -196,9 +364,7 @@ def quarterly():
     if not df.empty and 'Date' in df.columns and 'Production_MT' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'])
         
-        # 🟢 1. Dynamic Weekly Tracker mapping to 'Week X' template format
         df['Wk_Num'] = df['Date'].dt.isocalendar().week
-        # Normalize relative scale starting from 1 for testing rows representation
         min_wk = df['Wk_Num'].min()
         df['Wk_Key'] = df['Wk_Num'].apply(lambda x: f"Week {x - min_wk + 1}")
         
@@ -212,7 +378,6 @@ def quarterly():
                 "is_best": bool(r['Production_MT'] == max_wk)
             })
             
-        # 🟢 2. Dynamic Monthly Matrix formatting to 'Month Production'
         df['Mon_Key'] = df['Date'].dt.strftime('%B Production')
         mon_grp = df.groupby('Mon_Key')['Production_MT'].sum().reset_index()
         max_mon = mon_grp['Production_MT'].max() if not mon_grp.empty else 0
@@ -224,7 +389,6 @@ def quarterly():
                 "is_best": bool(r['Production_MT'] == max_mon)
             })
     
-    # Filling default structured arrays if columns count is small to prevent template empty boxes
     if len(weekly_series) < 4:
         existing_labels = [w['label'] for w in weekly_series]
         for i in range(1, 5):
@@ -238,7 +402,6 @@ def quarterly():
             if m_lbl not in existing_months:
                 monthly_series.append({"label": m_lbl, "production": 0.0, "is_best": False})
 
-    # Short arrays chronologically
     weekly_series = sorted(weekly_series, key=lambda x: x['label'])
 
     metrics = {
@@ -247,14 +410,13 @@ def quarterly():
     }
     return render_template('quarterly.html', metrics=metrics)
 
+
 @app.route('/manual_entry', methods=['GET', 'POST'])
 def manual_entry():
     if request.method == 'POST':
         try:
-            # 🔍 SAFETY CHECK: Teeno common variations check karein taaki null na jaye
             log_date = request.form.get('log_date') or request.form.get('date') or request.form.get('target_date')
             
-            # Agar user ne date select hi nahi ki, toh flash error dikhayein, crash na ho
             if not log_date or log_date.strip() == '':
                 flash("❌ Operation Blocked: Please select a valid Date from the calendar before submitting!")
                 return redirect(url_for('manual_entry'))
@@ -284,13 +446,12 @@ def manual_entry():
         
     return render_template('data_entry.html')
 
-# 📡 1. Permanent URL Configuration aur File Upload Route
+
 @app.route('/bulk_upload', methods=['GET', 'POST'])
 def bulk_upload():
     conn = config.get_db_connection()
     cur = conn.cursor()
     
-    # Ensure database validation configurations table exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS gsheet_config (
             id SERIAL PRIMARY KEY,
@@ -340,7 +501,6 @@ def bulk_upload():
                 except Exception as e:
                     flash(f"❌ Local File Error: {e}")
 
-    # Fetching values safely to render
     cur.execute("SELECT url FROM gsheet_config ORDER BY id DESC LIMIT 1;")
     saved_url_row = cur.fetchone()
     saved_url = saved_url_row[0] if saved_url_row else None
@@ -348,7 +508,6 @@ def bulk_upload():
     cur.close()
     conn.close()
     
-    # 🎯 CRITICAL LINE: Make sure this explicitly calls your exact file name!
     return render_template('bulk_upload.html', saved_url=saved_url)
 
 
@@ -431,5 +590,30 @@ def sync_now():
         
     return redirect(url_for('bulk_upload'))
 
+
+@app.route('/reports')
+def view_reports():
+    report_date = request.args.get('report_date')
+    if not report_date:
+        report_date = date.today().strftime('%Y-%m-%d')
+    
+    active_report = request.args.get('report_type', 'daily')
+    
+    perf = get_daily_performance_summary(report_date)
+    delays = get_monthly_delay_breakdown(report_date)
+    
+    return render_template(
+        'reports.html', 
+        selected_date=report_date, 
+        active_report=active_report, 
+        perf=perf, 
+        delays=delays
+    )
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # 🌐 Configured for Jindal Steel Local Network / Server Deployment
+    app.run(host='0.0.0.0', port=8989, debug=True)
+'''if __name__ == '__main__':
+    app.run(debug=True, port=5000)'''
+    
