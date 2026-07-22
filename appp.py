@@ -1,11 +1,95 @@
+# appp.py
 from flask import Flask, render_template, jsonify, request, flash, redirect, url_for
-from datetime import datetime, date
 import config
 import pandas as pd
 import numpy as np
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+
+# 🚀 Server start hone par DB tables create/verify karein
+with app.app_context():
+    try:
+        config.init_db()
+        print("✅ PostgreSQL Database Initialized Successfully!")
+    except Exception as e:
+        print(f"⚠️ DB Initialization Error: {e}")
+
+# -------------------------------------------------------------
+# 🔒 DECORATOR: Check if user is logged in
+# -------------------------------------------------------------
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("🔒 Session expired or login required.")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# -------------------------------------------------------------
+# 🔑 LOGIN ROUTE (PostgreSQL Version)
+# -------------------------------------------------------------
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        selected_role = request.form.get('role')
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        try:
+            conn = config.get_db_connection()
+            cur = conn.cursor()
+            
+            # PostgreSQL parameterized query
+            cur.execute(
+                "SELECT id, username, password, role, status FROM users WHERE username = %s;", 
+                (username,)
+            )
+            user = cur.fetchone()
+            cur.close()
+            conn.close()
+
+            if user:
+                user_id, db_user, db_pass, db_role, status = user[0], user[1], user[2], user[3], user[4]
+                
+                # Check User Status
+                if status and str(status).lower() not in ['active', '1', 'true']:
+                    flash("⛔ Your account is inactive. Contact Admin.")
+                    return redirect(url_for('login'))
+
+                # Password Validation
+                if db_pass == password:
+                    session['user_id'] = user_id
+                    session['username'] = db_user
+                    session['role'] = db_role
+                    
+                    flash(f"Welcome back, {db_user}!")
+                    return redirect(url_for('overview'))
+                else:
+                    flash("❌ Incorrect Password.")
+            else:
+                flash("❌ User ID not found.")
+
+        except Exception as e:
+            flash(f"⚠️ Database Error: {str(e)}")
+
+        return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+# -------------------------------------------------------------
+# 🚪 LOGOUT ROUTE
+# -------------------------------------------------------------
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("ℹ️ You have logged out successfully.")
+    return redirect(url_for('login'))
+
 
 # Call DB initializing script context upon start
 try:
@@ -212,9 +296,9 @@ def fetch_database_metrics():
         print(f"⚠️ Failover Reading DB Analytics: {e}")
         return []
 
-
 @app.route('/')
 @app.route('/overview')
+@login_required
 def overview():
     try:
         conn = config.get_db_connection()
@@ -237,18 +321,21 @@ def overview():
 
 
 @app.route('/raw_material_matrix')
+@login_required
 def raw_material_matrix():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('raw_material.html', metrics=metrics)
 
 
 @app.route('/power')
+@login_required
 def power():
     metrics = {"time_series": fetch_database_metrics()}
     return render_template('power.html', metrics=metrics)
 
 
 @app.route('/target_settings', methods=['GET', 'POST'])
+@login_required
 def target_settings():
     conn = config.get_db_connection()
     cur = conn.cursor()
@@ -291,6 +378,7 @@ def target_settings():
 
 
 @app.route('/trends')
+@login_required
 def trends():
     db_series = fetch_database_metrics()
     
@@ -322,11 +410,10 @@ def trends():
 
 
 @app.route('/logistics')
-def logistics(): 
-    return render_template('logistics.html')
-
+def logistics(): return render_template('logistics.html')
 
 @app.route('/analysis')
+@login_required
 def analysis():
     try:
         metrics = {"time_series": fetch_database_metrics()}
@@ -337,6 +424,7 @@ def analysis():
 
 
 @app.route('/quarterly')
+@login_required
 def quarterly():
     db_series = fetch_database_metrics()
     
@@ -412,7 +500,12 @@ def quarterly():
 
 
 @app.route('/manual_entry', methods=['GET', 'POST'])
+@login_required
 def manual_entry():
+    if session.get('role') == 'Viewer':
+            flash("⛔ Access Restricted: Viewers cannot perform Manual Entry.")
+            return redirect(url_for('overview'))
+    
     if request.method == 'POST':
         try:
             log_date = request.form.get('log_date') or request.form.get('date') or request.form.get('target_date')
@@ -443,12 +536,17 @@ def manual_entry():
         except Exception as e:
             flash(f"❌ Manual Entry Failed: {e}")
         return redirect(url_for('manual_entry'))
+
         
     return render_template('data_entry.html')
 
 
 @app.route('/bulk_upload', methods=['GET', 'POST'])
 def bulk_upload():
+    if session.get('role') == 'Viewer':
+        flash("⛔ Access Restricted: Viewers cannot access Bulk Upload.")
+        return redirect(url_for('overview'))
+
     conn = config.get_db_connection()
     cur = conn.cursor()
     

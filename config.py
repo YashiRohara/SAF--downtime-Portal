@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 🔐 PostgreSQL Database Authentication Coordinates
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "saf_production")
-DB_USER = os.getenv("DB_USER", "postgres")
-# Agar .env file me DB_PASSWORD na mile, toh fallback 'admin.123' use karega
-DB_PASSWORD = os.getenv("DB_PASSWORD", "admin.123") 
-DB_PORT = os.getenv("DB_PORT", "5432")
+# (Apne local database username aur password ke hisab se isko change kar lena bhai)
+DB_HOST = "localhost"
+DB_NAME = "saf_production"
+DB_USER = "postgres"
+DB_PASSWORD = "admin.123"
+DB_PORT = "5432"
 
 SECRET_KEY = os.getenv("SECRET_KEY", "jindal_secret_security_token")
 EXCEL_FILE_PATH = "MIS 26-27.xlsx"
@@ -29,11 +29,11 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Initializes schema components and default seed metrics into PostgreSQL."""
+    """Initializes schema components, users authentication table, and default seeds into PostgreSQL."""
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # 1. Target values tracking matrix table schema
+    # Target values tracking matrix table schema
     cur.execute("""
         CREATE TABLE IF NOT EXISTS kpi_targets (
             id SERIAL PRIMARY KEY,
@@ -49,8 +49,21 @@ def init_db():
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
-    
-    # Check if a seed row already exists, if not insert default configs
+
+    # 4. 📈
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS saf_production_data
+            id SERIAL PRIMARY KEY,
+            data_source VARCHAR(50) DEFAULT 'MANUAL_ENTRY',
+            log_date DATE UNIQUE NOT NULL,  -- 👈 UNIQUE constraint zaroori hai ON CONFLICT ke liye
+            power_ingested NUMERIC(10,2) DEFAULT 0.0,
+            steel_yield NUMERIC(10,2) DEFAULT 0.0,
+            delay_hours NUMERIC(10,2) DEFAULT 0.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Insert initial KPI target row if empty
     cur.execute("SELECT COUNT(*) FROM kpi_targets;")
     if cur.fetchone()[0] == 0:
         cur.execute("""
@@ -105,7 +118,7 @@ def init_db():
     cur.close()
     conn.close()
 
-# Keep your existing Excel Engine perfectly untouched below
+# 📊 Excel Engine (Kept 100% Untouched)
 def get_excel_data():
     try:
         if not os.path.exists(EXCEL_FILE_PATH):

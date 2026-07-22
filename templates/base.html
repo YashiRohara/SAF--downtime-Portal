@@ -37,7 +37,7 @@
             position: relative;
         }
         
-        /* 📐 STICKY & IMMOVABLE SIDEBAR FRAMEWORK WITH TOGGLE SUPPORT */
+        /* 📐 STICKY SIDEBAR */
         .sidebar {
             width: 260px; 
             background-color: #12161a; 
@@ -45,7 +45,7 @@
             padding: 20px 0; 
             display: flex; 
             flex-direction: column; 
-            position: fixed; /* 🔒 Makes sidebar independent of scrolling */
+            position: fixed;
             top: 0;
             bottom: 0;
             left: 0;
@@ -53,12 +53,11 @@
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* Sidebar Hidden State Class */
         .sidebar.collapsed-hide {
             transform: translateX(-260px);
         }
         
-        /* 🖼️ LOGO CONTAINER HEADER (TOP-LEFT) */
+        /* 🖼️ LOGO CONTAINER HEADER (TOP-LEFT) - INCREASED DIMENSIONS */
         .brand-logo-header { 
             padding: 0 15px;
             margin-bottom: 25px;
@@ -75,9 +74,6 @@
             object-fit: contain;
             filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(1.1);
             mix-blend-mode: screen;
-        }
-        .brand-logo-header::after {
-            display: none;
         }
 
         .sidebar-menu-list { 
@@ -140,8 +136,10 @@
             backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
+            justify-content: space-between; /* Adjusted to balance left toggle and right user profile */
             padding: 0 35px;
             z-index: 98;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
@@ -168,6 +166,56 @@
             color: var(--jindal-saffron);
         }
 
+        /* 👤 TOP RIGHT USER CONSOLE */
+        .user-meta-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        .role-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .role-badge.admin { background-color: rgba(244, 121, 32, 0.2); color: var(--jindal-saffron); border: 1px solid var(--jindal-saffron); }
+        .role-badge.operator { background-color: rgba(80, 136, 72, 0.2); color: #72c266; border: 1px solid var(--jindal-green); }
+        .role-badge.viewer { background-color: rgba(68, 97, 131, 0.2); color: #8bb1de; border: 1px solid var(--jindal-twilight-blue); }
+
+        .btn-logout {
+            color: #ef4444;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background-color: rgba(239, 68, 68, 0.15);
+        }
+
+        /* 🔔 FLASH ALERT MESSAGES */
+        .flash-alert-container {
+            margin-bottom: 20px;
+        }
+        .alert-item {
+            padding: 12px 18px;
+            border-radius: 4px;
+            background-color: rgba(244, 121, 32, 0.15);
+            border: 1px solid var(--jindal-saffron);
+            color: #ffffff;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .analytics-row-grid { display: block !important; width: 100% !important; margin-bottom: 30px; }
         .chart-panel-rect, .chart-panel, .dashboard-chart-card {
             background-color: var(--jindal-panel-bg); padding: 24px; margin-bottom: 25px; border-radius: 4px; box-sizing: border-box; display: block !important; overflow: hidden;
@@ -179,6 +227,7 @@
 
 <div class="dashboard-wrapper">
     
+    <!-- 📐 SIDEBAR -->
     <div class="sidebar" id="dashboardSidebar">
         <div class="brand-logo-header">
             <img src="{{ url_for('static', filename='image/jindal_logo.jpeg') }}" class="jindal-official-logo" alt="Jindal Steel Logo">
@@ -212,23 +261,47 @@
             <a href="/bulk_upload" class="sidebar-link {% if request.path == '/bulk_upload' %}active{% endif %}">
                 📤 Bulk Ingestion Hub
             </a>
+            <!-- 🎯 NEW TARGET SETTINGS TAB ADDED HERE -->
             <a href="/target_settings" class="sidebar-link {% if request.path == '/target_settings' %}active{% endif %}">
                 🎯 Target Settings Hub
-            </a>
-            <!-- Fixed URL endpoint error by using clean static route '/reports' -->
-            <a href="/reports" class="sidebar-link {% if request.path == '/reports' %}active{% endif %}">
-                📄 Performance & Delay Reports
             </a>
         </div>
     </div>
 
+    <!-- 🎛️ TOP BAR -->
     <div class="top-action-navbar" id="topNavbar">
         <button class="menu-toggle-hamburger" onclick="executeSidebarToggle()">
             ☰ <span style="font-size: 12px; margin-left: 8px; font-weight: 600; font-family: 'Poppins';">MENU</span>
         </button>
+
+        <!-- 👤 User Session Details & Logout -->
+        {% if session.get('username') %}
+        <div class="user-meta-box">
+            <span>👤 <strong>{{ session.get('username') }}</strong></span>
+            <span class="role-badge {{ session.get('role', 'Viewer')|lower }}">
+                {{ session.get('role', 'Viewer') }}
+            </span>
+            <a href="{{ url_for('logout') if 'logout' in endpoints else '/logout' }}" class="btn-logout">Logout 🚪</a>
+        </div>
+        {% endif %}
     </div>
 
+    <!-- 🖥️ MAIN VIEWPORT -->
     <div class="main-viewport-content" id="mainContentPanel">
+        
+        <!-- 🔔 FLASH MESSAGES CONTAINER -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-alert-container">
+                    {% for message in messages %}
+                        <div class="alert-item">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </div>
 </div>
