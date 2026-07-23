@@ -15,6 +15,53 @@ try:
 except Exception as e:
     print(f"💥 PostgreSQL Initialization Fault Trace: {e}")
 
+# -------------------------------------------------------------
+# 🔑 LOGIN ROUTE
+# -------------------------------------------------------------
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        try:
+            conn = config.get_db_connection()
+            cur = conn.cursor()
+            
+            cur.execute(
+                "SELECT id, username, password, role, status FROM users WHERE username = %s;", 
+                (username,)
+            )
+            user = cur.fetchone()
+            cur.close()
+            conn.close()
+
+            if user:
+                user_id, db_user, db_pass, db_role, status = user[0], user[1], user[2], user[3], user[4]
+                
+                # Check status
+                if status and str(status).lower() not in ['active', '1', 'true']:
+                    flash("⛔ Your account is inactive. Contact Admin.")
+                    return redirect(url_for('login'))
+
+                if db_pass == password:
+                    session['user_id'] = user_id
+                    session['username'] = db_user
+                    session['role'] = db_role
+                    
+                    flash(f"Welcome back, {db_user}!")
+                    return redirect(url_for('overview'))
+                else:
+                    flash("❌ Incorrect Password.")
+            else:
+                flash("❌ User ID not found.")
+
+        except Exception as e:
+            flash(f"⚠️ Database Error: {str(e)}")
+
+        return redirect(url_for('login'))
+
+    return render_template('login.html')
 
 # 🔒 LOGIN REQUIRED DECORATOR
 def login_required(f):
@@ -234,7 +281,13 @@ def fetch_database_metrics():
 
 
 @app.route('/')
+def index():
+    # Agar user logged in nahi hai, toh automatic Login page par bheje
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return redirect(url_for('overview'))
 @app.route('/overview')
+@login_required
 def overview():
     try:
         conn = config.get_db_connection()

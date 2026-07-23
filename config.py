@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 🔐 PostgreSQL Database Authentication Coordinates
-# (Apne local database username aur password ke hisab se isko change kar lena bhai)
-DB_HOST = "localhost"
-DB_NAME = "saf_production"
-DB_USER = "postgres"
-DB_PASSWORD = "admin.123"
-DB_PORT = "5432"
+# (Aap apne local .env file me DB_PASSWORD set kar sakte hain, default 'admin.123' rakha hai)
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_NAME = os.getenv("DB_NAME", "saf_production")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "admin.123")  # 👈 Agar aapka PG password alag hai toh .env me badlein
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "jindal_secret_security_token")
 EXCEL_FILE_PATH = "MIS 26-27.xlsx"
@@ -33,7 +33,7 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Target values tracking matrix table schema
+    # 1. Target values tracking matrix table schema
     cur.execute("""
         CREATE TABLE IF NOT EXISTS kpi_targets (
             id SERIAL PRIMARY KEY,
@@ -50,32 +50,11 @@ def init_db():
         );
     """)
 
-    # 4. 📈
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS saf_production_data
-            id SERIAL PRIMARY KEY,
-            data_source VARCHAR(50) DEFAULT 'MANUAL_ENTRY',
-            log_date DATE UNIQUE NOT NULL,  -- 👈 UNIQUE constraint zaroori hai ON CONFLICT ke liye
-            power_ingested NUMERIC(10,2) DEFAULT 0.0,
-            steel_yield NUMERIC(10,2) DEFAULT 0.0,
-            delay_hours NUMERIC(10,2) DEFAULT 0.0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-
-    # Insert initial KPI target row if empty
-    cur.execute("SELECT COUNT(*) FROM kpi_targets;")
-    if cur.fetchone()[0] == 0:
-        cur.execute("""
-            INSERT INTO kpi_targets (daily_prod, monthly_prod, growth_pct, max_sec, optimal_sec, min_avail, util_pct, delay_hours, dispatch_vol)
-            VALUES (203.0, 17052, 5.0, 3.5, 3.3, 95.0, 90.0, 120.0, 16000);
-        """)
-        
     # 2. Main Production Data Table Base Schema
     cur.execute("""
         CREATE TABLE IF NOT EXISTS saf_production_data (
             id SERIAL PRIMARY KEY,
-            data_source VARCHAR(50) NOT NULL, 
+            data_source VARCHAR(50) DEFAULT 'MANUAL_ENTRY', 
             log_date DATE UNIQUE NOT NULL,    
             power_ingested NUMERIC(10,2) DEFAULT 0.0,    
             steel_yield NUMERIC(10,2) DEFAULT 0.0,       
@@ -84,7 +63,15 @@ def init_db():
         );
     """)
 
-    # 3. Google Sheet Config Table
+    # 3. Insert initial KPI target row if empty
+    cur.execute("SELECT COUNT(*) FROM kpi_targets;")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO kpi_targets (daily_prod, monthly_prod, growth_pct, max_sec, optimal_sec, min_avail, util_pct, delay_hours, dispatch_vol)
+            VALUES (203.0, 17052, 5.0, 3.5, 3.3, 95.0, 90.0, 120.0, 16000);
+        """)
+
+    # 4. Google Sheet Config Table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS gsheet_config (
             id SERIAL PRIMARY KEY,
@@ -93,7 +80,7 @@ def init_db():
         );
     """)
     
-    # 4. Dynamically Alter Base Table to Include Detailed SAF#1, SAF#2 Delays & Material Breakdown
+    # 5. Dynamically Alter Base Table to Include Detailed SAF#1, SAF#2 Delays & Material Breakdown
     cur.execute("""
         ALTER TABLE saf_production_data 
         ADD COLUMN IF NOT EXISTS saf1_oprn_delay NUMERIC(5,2) DEFAULT 0.0,
