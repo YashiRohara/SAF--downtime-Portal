@@ -1,85 +1,965 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SAF Operation Log Sheet - Jindal Steel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --saffron: #F47920;
+            --saffron-dark: #D9640F;
+            --spring-green: #50B848;
+            --grey: #636466;
+            --burgundy: #7C4548;
+            --bg-page: #14161a;
+            --bg-panel: #1c1f24;
+            --bg-cell: #0e1013;
+            --border: #2c3036;
+        }
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/overview.css') }}">
-<style>
-    .form-container-panel {
-        background-color: var(--jindal-panel-bg); padding: 30px; border-top: 3px solid var(--jindal-saffron); max-width: 800px;
-    }
-    .form-group-row {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;
-    }
-    .input-field-wrapper { display: flex; flex-direction: column; gap: 8px; }
-    .input-field-wrapper label { font-size: 12px; color: #a0aec0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-    .jindal-input {
-        background: #12161a; color: white; border: 1px solid var(--jindal-grey); padding: 12px;
-        font-family: 'Poppins'; font-size: 14px; border-radius: 4px;
-    }
-    .jindal-input:focus { border-color: var(--jindal-saffron); outline: none; }
-    .submit-btn-jindal {
-        background-color: var(--jindal-saffron); color: white; border: none; padding: 14px 30px;
-        font-family: 'Poppins'; font-weight: 700; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: background 0.2s;
-    }
-    .submit-btn-jindal:hover { background-color: #d66315; }
-    .alert-banner-success {
-        background-color: rgba(80, 136, 72, 0.15); border: 1px solid #508848; color: #cbd5e0; padding: 15px; margin-bottom: 25px; font-size: 14px;
-    }
-</style>
-{% endblock %}
+        * { box-sizing: border-box; }
 
-{% block content %}
-<div class="manual-entry-viewport">
-    <div class="page-header">
-        <h1>📝 Furnace Telemetry Manual Ledger Entry</h1>
-        <p class="subtitle">Secure Operational Data Ingestion Hub</p>
-    </div>
+        body {
+            background: var(--bg-page);
+            color: #e8e9eb;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert-banner-success">🟢 {{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        .container { max-width: 100%; padding: 28px 32px; }
 
-    <div class="form-container-panel">
-        <form action="/manual_entry" method="POST">
-            
-            <div class="form-group-row">
-                <div class="form-group">
-                    <label for="log_date">Operational Date *</label>
-                    <input type="date" id="log_date" name="log_date" required class="form-control">
+        /* ===== HEADER ===== */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 3px solid var(--saffron);
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .logo-chip {
+            width: 46px; height: 46px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--saffron), var(--spring-green));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
+            letter-spacing: 0.2px;
+        }
+        h1 span { color: var(--saffron); }
+        .subtitle {
+            color: #9a9ea3;
+            font-size: 12.5px;
+            margin-top: 3px;
+            font-weight: 400;
+        }
+        .back-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: #d6d8db;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .back-btn:hover { border-color: var(--saffron); color: var(--saffron); }
+
+        /* ===== FLASH MESSAGE ===== */
+        .flash-msg {
+            background: linear-gradient(90deg, var(--spring-green), #3f9c39);
+            color: #fff;
+            padding: 13px 18px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            font-size: 13.5px;
+            font-weight: 500;
+            box-shadow: 0 4px 14px rgba(80,184,72,0.25);
+        }
+
+        /* ===== SECTION HEADINGS ===== */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 26px 0 10px 0;
+        }
+        .section-title .bar {
+            width: 4px; height: 18px;
+            background: var(--saffron);
+            border-radius: 2px;
+        }
+        .section-title h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .section-title .hint {
+            font-size: 11.5px;
+            color: var(--grey);
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-left: 4px;
+        }
+
+        /* ===== TABLE PANEL ===== */
+        .table-panel {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            overflow: auto;
+            margin-bottom: 8px;
+        }
+        table { border-collapse: collapse; }
+
+        th.grp {
+            background: #12141a;
+            color: var(--saffron);
+            border: 1px solid var(--border);
+            font-size: 10.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            padding: 10px 10px;
+        }
+        th.sub {
+            background: #181b21;
+            color: #9a9ea3;
+            border: 1px solid var(--border);
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            padding: 6px 10px;
+        }
+
+        td.data-cell {
+            border: 1px solid #22262c;
+            padding: 3px;
+            background: var(--bg-panel);
+        }
+        tbody tr:nth-child(even) td.data-cell { background: #1a1d22; }
+        tbody tr:hover td.data-cell { background: #23262d; }
+
+        .cell-input {
+            background: var(--bg-cell);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 6px 7px;
+            width: 100%;
+            min-width: 72px;
+            color: #f1f2f3;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .cell-input::placeholder { color: #55585d; }
+        .cell-input:focus {
+            outline: none;
+            border-color: var(--saffron);
+            box-shadow: 0 0 0 3px rgba(244,121,32,0.15);
+        }
+        .cell-input[readonly] {
+            background: #12141a;
+            color: var(--spring-green);
+            font-weight: 700;
+        }
+
+        .sticky-col-1 {
+            position: sticky; left: 0; z-index: 5;
+            background: #1c1f24;
+        }
+        .sticky-col-2 {
+            position: sticky; left: 130px; z-index: 5;
+            background: #1c1f24;
+        }
+        thead th.sticky-col-1, thead th.sticky-col-2 { z-index: 20; background: #0f1116; }
+
+        /* ===== ELECTRODE BOX ===== */
+        .electrode-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 22px;
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .electrode-item label {
+            font-size: 11px;
+            color: var(--grey);
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .electrode-item input {
+            width: 170px;
+            border-left: 3px solid var(--burgundy);
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .submit-row { display: flex; justify-content: flex-end; margin-top: 24px; }
+        .submit-btn {
+            background: linear-gradient(90deg, var(--saffron), var(--saffron-dark));
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 13px 28px;
+            border: none;
+            border-radius: 9px;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(244,121,32,0.3);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(244,121,32,0.4);
+        }
+        .submit-btn:active { transform: translateY(0); }
+
+        /* ===== MONTH TABS ===== */
+        .month-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 18px;
+        }
+        .month-tab {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: #b7bac0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .month-tab:hover {
+            border-color: var(--saffron);
+            color: var(--saffron);
+        }
+        .month-tab.active {
+            background: linear-gradient(90deg, var(--saffron), var(--saffron-dark));
+            border-color: var(--saffron);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(244,121,32,0.3);
+        }
+        .year-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .year-picker-row label {
+            font-size: 11.5px;
+            color: var(--grey);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .year-select {
+            background: var(--bg-cell);
+            border: 1px solid var(--border);
+            color: #f1f2f3;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .year-select:focus { outline: none; border-color: var(--saffron); }
+
+        /* ===== SHEET PAGE SWITCHER ===== */
+        .sheet-pager {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0 16px 0;
+            flex-wrap: wrap;
+        }
+        .pager-arrow {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: #d6d8db;
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .pager-arrow:hover { border-color: var(--saffron); color: var(--saffron); }
+        .pager-arrow.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+        .pager-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pager-tab {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: #b7bac0;
+            padding: 9px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .pager-tab:hover { border-color: var(--saffron); color: var(--saffron); }
+        .pager-tab.active {
+            background: linear-gradient(90deg, var(--saffron), var(--saffron-dark));
+            border-color: var(--saffron);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(244,121,32,0.3);
+        }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        /* ===== PAGE 2 SINGLE-DATE BAR ===== */
+        .page2-date-bar {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .page2-date-bar label {
+            font-size: 11.5px;
+            color: var(--grey);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .page2-date-bar input[type="date"] {
+            width: 170px;
+            border-left: 3px solid var(--saffron);
+        }
+
+        /* scrollbar polish */
+        .table-panel::-webkit-scrollbar { height: 10px; width: 10px; }
+        .table-panel::-webkit-scrollbar-track { background: var(--bg-page); }
+        .table-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+        .table-panel::-webkit-scrollbar-thumb:hover { background: var(--saffron); }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="header-bar">
+            <div class="header-left">
+                <div class="logo-chip">📊</div>
+                <div>
+                    <h1>SAF Furnace <span>Operation Log Sheet</span></h1>
+                    <div class="subtitle">Use Tab to move across cells and enter operational data continuously, like an Excel sheet.</div>
+                </div>
+            </div>
+            <a href="{{ url_for('overview') }}" class="back-btn">← Back to Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-msg">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="year-picker-row">
+            <label>Year</label>
+            <select class="year-select" onchange="window.location.href = '{{ url_for('manual_entry') }}?month={{ selected_month }}&year=' + this.value;">
+                {% for y in year_options %}
+                <option value="{{ y }}" {{ 'selected' if y == selected_year else '' }}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="month-tabs">
+            {% for m in month_tabs %}
+            <a href="{{ url_for('manual_entry', month=m.num, year=selected_year) }}" class="month-tab {{ 'active' if m.num == selected_month else '' }}">{{ m.name }}</a>
+            {% endfor %}
+        </div>
+
+        <!-- ============ SHEET PAGE SWITCHER (Page 1 ⇄ Page 5) ============ -->
+        <div class="sheet-pager">
+            <div class="pager-arrow disabled" id="pagerPrev" onclick="goToPage(currentPage - 1)">‹</div>
+            <div class="pager-tabs">
+                <div class="pager-tab active" id="tabPage1" onclick="goToPage(1)">Page 1 — Hourly Log</div>
+                <div class="pager-tab" id="tabPage2" onclick="goToPage(2)">Page 2 — Cast &amp; Casing</div>
+                <div class="pager-tab" id="tabPage3" onclick="goToPage(3)">Page 3 — Alloy Analysis</div>
+                <div class="pager-tab" id="tabPage4" onclick="goToPage(4)">Page 4 — Slag Analysis</div>
+                <div class="pager-tab" id="tabPage5" onclick="goToPage(5)">Page 5 — Bunker &amp; Production</div>
+            </div>
+            <div class="pager-arrow" id="pagerNext" onclick="goToPage(currentPage + 1)">›</div>
+        </div>
+
+        <div id="page1Content" class="page-content active">
+        <form action="{{ url_for('manual_entry') }}" method="POST">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+
+            <!-- ============ MAIN HOURLY LOG TABLE ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Hourly Log</h2>
+                <span class="hint">{{ month_label }} — {{ days_in_month }} days</span>
+            </div>
+            <div class="table-panel" style="max-height: 65vh;">
+                <table style="min-width: 3200px;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="grp sticky-col-1" style="min-width:130px;">Log Date *</th>
+                            <th rowspan="2" class="grp sticky-col-2" style="min-width:70px;">Time (HR)</th>
+                            <th rowspan="2" class="grp">Instt Load (MW)</th>
+                            <th rowspan="2" class="grp">Meter Reading</th>
+                            <th rowspan="2" class="grp">Energy Consumption</th>
+                            <th rowspan="2" class="grp">Tap Position</th>
+                            <th rowspan="2" class="grp">Prim. Volt (KV)</th>
+                            <th colspan="3" class="grp">Primary Current (A)</th>
+                            <th colspan="3" class="grp">Secondary Volt (V)</th>
+                            <th colspan="3" class="grp">Secondary Current (kA)</th>
+                            <th rowspan="2" class="grp">Cos Φ (PF)</th>
+                            <th colspan="3" class="grp">Holder Pos. (mm)</th>
+                            <th colspan="3" class="grp">Shell Temp (°C)</th>
+                            <th colspan="3" class="grp">Bottom Temp (°C)</th>
+                            <th colspan="3" class="grp">Chimney Temp (°C)</th>
+                            <th colspan="2" class="grp">FDC Temp</th>
+                            <th colspan="2" class="grp">Bag Filter Temp</th>
+                            <th colspan="3" class="grp">Winding Temp</th>
+                            <th colspan="3" class="grp">Oil Temp</th>
+                            <th colspan="3" class="grp">Tap Changer Counter</th>
+                            <th rowspan="2" class="grp">Instt Load (MVA)</th>
+                            <th rowspan="2" class="grp">C3</th>
+                            <th rowspan="2" class="grp">Hearth Res</th>
+                            <th rowspan="2" class="grp">Delay (Hrs)</th>
+                            <th rowspan="2" class="grp">Steel Yield (MT)</th>
+                            <th rowspan="2" class="grp">Power (MWh)</th>
+                        </tr>
+                        <tr>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">E1</th><th class="sub">E2</th><th class="sub">E3</th>
+                            <th class="sub">Inlet</th><th class="sub">Outlet</th>
+                            <th class="sub">Inlet</th><th class="sub">Outlet</th>
+                            <th class="sub">R</th><th class="sub">Y</th><th class="sub">B</th>
+                            <th class="sub">R</th><th class="sub">Y</th><th class="sub">B</th>
+                            <th class="sub">R</th><th class="sub">Y</th><th class="sub">B</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(days_in_month) %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="date" name="log_date[]" value="{{ month_dates[i] }}" class="cell-input"></td>
+                            <td class="data-cell sticky-col-2"><input type="text" name="time_hr[]" value="{{ '%02d:00' % ((22 + i) % 24) }}" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="instt_load_mw[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="meter_reading[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="energy_consumption[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="tap_position[]" placeholder="Tap" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="prim_volt_kv[]" placeholder="0.00" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.01" name="primary_current_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="primary_current_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="primary_current_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_volt_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_volt_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_volt_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_current_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_current_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="secondary_current_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.001" name="power_factor[]" placeholder="0.00" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="holder_pos_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="holder_pos_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="holder_pos_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="shell_temp_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="shell_temp_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="shell_temp_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="bottom_temp_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="bottom_temp_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="bottom_temp_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="chimney_temp_e1[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="chimney_temp_e2[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="chimney_temp_e3[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="fdc_temp_inlet[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="fdc_temp_outlet[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="bagfilter_temp_inlet[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="bagfilter_temp_outlet[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="winding_temp_r[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="winding_temp_y[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="winding_temp_b[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.1" name="oil_temp_r[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="oil_temp_y[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="oil_temp_b[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="1" name="tapchanger_r[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="1" name="tapchanger_y[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="1" name="tapchanger_b[]" class="cell-input"></td>
+
+                            <td class="data-cell"><input type="number" step="0.01" name="instt_load_mva[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="c3[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="hearth_resistance[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="delay_hours[]" placeholder="0.0" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="steel_yield[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="power_ingested[]" placeholder="0.00" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============ VF SECTION ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>VF Charging</h2>
+                <span class="hint">Set Wt. / Act. Wt. per feeder</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 1400px;">
+                    <thead>
+                        <tr>
+                            {% for n in range(1, 11) %}
+                            <th colspan="2" class="grp">VF {{ n }}</th>
+                            {% endfor %}
+                            <th class="grp">Total</th>
+                        </tr>
+                        <tr>
+                            {% for n in range(1, 11) %}
+                            <th class="sub">Set Wt.</th>
+                            <th class="sub">Act Wt.</th>
+                            {% endfor %}
+                            <th class="sub">Act Wt.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            {% for n in range(1, 11) %}
+                            <td class="data-cell"><input type="number" step="0.01" name="vf{{ n }}_set_wt" class="cell-input vf-set" data-vf="{{ n }}"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="vf{{ n }}_act_wt" class="cell-input vf-act"></td>
+                            {% endfor %}
+                            <td class="data-cell"><input type="number" step="0.01" name="vf_total_act_wt" id="vfTotal" class="cell-input" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============ ELECTRODE SLIPPING SECTION ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Electrode Slipping</h2>
+                <span class="hint">Total slipping in mm</span>
+            </div>
+            <div class="electrode-panel">
+                <div class="electrode-item">
+                    <label>Electrode 1</label>
+                    <input type="number" step="0.1" name="electrode1_slipping" class="cell-input">
+                </div>
+                <div class="electrode-item">
+                    <label>Electrode 2</label>
+                    <input type="number" step="0.1" name="electrode2_slipping" class="cell-input">
+                </div>
+                <div class="electrode-item">
+                    <label>Electrode 3</label>
+                    <input type="number" step="0.1" name="electrode3_slipping" class="cell-input">
                 </div>
             </div>
 
-            <h4 style="font-size:13px; text-transform:uppercase; color:var(--jindal-saffron); margin: 25px 0 15px 0; border-bottom:1px solid #242f36; padding-bottom:5px;">🔥 Production Metrics (Metric Tons)</h4>
-            <div class="form-group-row">
-                <div class="input-field-wrapper">
-                    <label>SAF - 1 Metal Output</label>
-                    <input type="number" step="0.1" name="saf1_prod" class="jindal-input" placeholder="0.0" required>
-                </div>
-                <div class="input-field-wrapper">
-                    <label>SAF - 2 Metal Output</label>
-                    <input type="number" step="0.1" name="saf2_prod" class="jindal-input" placeholder="0.0" required>
-                </div>
-            </div>
-
-            <h4 style="font-size:13px; text-transform:uppercase; color:#446183; margin: 25px 0 15px 0; border-bottom:1px solid #242f36; padding-bottom:5px;">⚠️ Operational Downtime Logs (Hours)</h4>
-            <div class="form-group-row">
-                <div class="input-field-wrapper">
-                    <label>Operational Delay (Oprn)</label>
-                    <input type="number" step="0.1" name="delay_oprn" class="jindal-input" placeholder="0.0" default="0.0">
-                </div>
-                <div class="input-field-wrapper">
-                    <label>Mechanical Breakdown (Mech)</label>
-                    <input type="number" step="0.1" name="delay_mech" class="jindal-input" placeholder="0.0" default="0.0">
-                </div>
-            </div>
-
-            <div style="margin-top: 30px; text-align: right;">
-                <button type="submit" class="submit-btn-jindal">📥 Commit Log to Database</button>
+            <div class="submit-row">
+                <button type="submit" class="submit-btn">💾 Save All Entered Rows to Database</button>
             </div>
         </form>
+        </div>
+        <!-- ============ END PAGE 1 ============ -->
+
+        <!-- ============ PAGE 2: CAST / HOLDER POSITION / ALLOY / SLAG / CASING ============ -->
+        <div id="page2Content" class="page-content">
+        <form action="{{ url_for('manual_entry_page2') }}" method="POST">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+
+            <div class="page2-date-bar">
+                <label>Log Date (applies to whole Page 2)</label>
+                <input type="date" name="page2_log_date" value="{{ month_dates[0] }}" class="cell-input">
+            </div>
+
+            <!-- ============ TH-WISE CAST & HOLDER POSITION LOG ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Holder Position — TH-wise Cast Log</h2>
+                <span class="hint">Time (O/C), Holder Position per electrode, Meter Reading, Consumption, Alloy/Slag MT</span>
+            </div>
+            <div class="table-panel" style="max-height: 60vh;">
+                <table style="min-width: 1900px;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="grp sticky-col-1" style="min-width:60px;">TH No</th>
+                            <th rowspan="2" class="grp sticky-col-2" style="min-width:60px;">Sl No</th>
+                            <th rowspan="2" class="grp">Cast No</th>
+                            <th colspan="2" class="grp">Time</th>
+                            <th colspan="3" class="grp">Holder Pos. E1</th>
+                            <th colspan="3" class="grp">Holder Pos. E2</th>
+                            <th colspan="3" class="grp">Holder Pos. E3</th>
+                            <th rowspan="2" class="grp">Meter Reading</th>
+                            <th rowspan="2" class="grp">Consumption MWh</th>
+                            <th rowspan="2" class="grp">Alloy MT</th>
+                            <th rowspan="2" class="grp">Slag MT</th>
+                        </tr>
+                        <tr>
+                            <th class="sub">O</th><th class="sub">C</th>
+                            <th class="sub">A</th><th class="sub">B</th><th class="sub">C</th>
+                            <th class="sub">A</th><th class="sub">B</th><th class="sub">C</th>
+                            <th class="sub">A</th><th class="sub">B</th><th class="sub">C</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(15) %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" name="th_no[]" class="cell-input"></td>
+                            <td class="data-cell sticky-col-2"><input type="text" name="sl_no[]" value="{{ '%02d' % (i + 1) }}" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="cast_no[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="time_o[]" placeholder="HH:MM" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="time_c[]" placeholder="HH:MM" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e1_a[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e1_b[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e1_c[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e2_a[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e2_b[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e2_c[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e3_a[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e3_b[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.1" name="hp_e3_c[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="cast_meter_reading[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="cast_consumption_mwh[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="alloy_mt[]" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="slag_mt[]" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============ CASING READING ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Casing Reading</h2>
+                <span class="hint">Initial / C / A / B readings</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 500px;">
+                    <thead>
+                        <tr>
+                            <th class="grp">Stage</th><th class="grp">Reading 1</th><th class="grp">Reading 2</th><th class="grp">Reading 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stage_key, stage_label in [('initial','Initial'), ('c','C'), ('a','A'), ('b','B')] %}
+                        <tr>
+                            <td class="data-cell"><input type="text" value="{{ stage_label }}" readonly class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="casing_{{ stage_key }}_1" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="casing_{{ stage_key }}_2" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.01" name="casing_{{ stage_key }}_3" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="submit-btn">💾 Save Page 2 to Database</button>
+            </div>
+        </form>
+        </div>
+        <!-- ============ END PAGE 2 ============ -->
+
+        <!-- ============ PAGE 3: ALLOY ANALYSIS ============ -->
+        <div id="page3Content" class="page-content">
+        <form action="{{ url_for('manual_entry_page3') }}" method="POST">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+
+            <div class="page2-date-bar">
+                <label>Log Date (applies to whole Page 3)</label>
+                <input type="date" name="page3_log_date" value="{{ month_dates[0] }}" class="cell-input">
+            </div>
+
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Alloy Analysis</h2>
+                <span class="hint">% composition — per cast (Sl No)</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 700px;">
+                    <thead>
+                        <tr>
+                            <th class="grp sticky-col-1" style="min-width:60px;">Sl No</th>
+                            <th class="grp">Mn</th><th class="grp">Si</th><th class="grp">C</th><th class="grp">P</th><th class="grp">S</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(15) %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" name="alloy_sl_no[]" value="{{ '%02d' % (i + 1) }}" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="alloy_mn[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="alloy_si[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="alloy_c[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="alloy_p[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="alloy_s[]" placeholder="0.00" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="submit-btn">💾 Save Page 3 to Database</button>
+            </div>
+        </form>
+        </div>
+        <!-- ============ END PAGE 3 ============ -->
+
+        <!-- ============ PAGE 4: SLAG ANALYSIS ============ -->
+        <div id="page4Content" class="page-content">
+        <form action="{{ url_for('manual_entry_page4') }}" method="POST">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+
+            <div class="page2-date-bar">
+                <label>Log Date (applies to whole Page 4)</label>
+                <input type="date" name="page4_log_date" value="{{ month_dates[0] }}" class="cell-input">
+            </div>
+
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Slag Analysis</h2>
+                <span class="hint">% composition — per cast (Sl No)</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th class="grp sticky-col-1" style="min-width:60px;">Sl No</th>
+                            <th class="grp">MnO</th><th class="grp">FeO</th><th class="grp">Al₂O₃</th><th class="grp">SiO₂</th><th class="grp">CaO</th><th class="grp">MgO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(15) %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" name="slag_sl_no[]" value="{{ '%02d' % (i + 1) }}" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_mno[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_feo[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_al2o3[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_sio2[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_cao[]" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="0.001" name="slag_mgo[]" placeholder="0.00" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="submit-btn">💾 Save Page 4 to Database</button>
+            </div>
+        </form>
+        </div>
+        <!-- ============ END PAGE 4 ============ -->
+
+        <!-- ============ PAGE 5: BUNKER DATA / PRODUCTION / SHUT DOWN ============ -->
+        <div id="page5Content" class="page-content">
+        <form action="{{ url_for('manual_entry_page5') }}" method="POST">
+            <input type="hidden" name="selected_month" value="{{ selected_month }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year }}">
+
+            <div class="page2-date-bar">
+                <label>Log Date (applies to whole Page 5)</label>
+                <input type="date" name="page5_log_date" value="{{ month_dates[0] }}" class="cell-input">
+                <label style="margin-left:20px;">No. of Batches</label>
+                <input type="number" step="1" name="no_of_batches" class="cell-input" style="width:100px;">
+            </div>
+
+            <!-- ============ BUNKER DATA ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Bunker Data</h2>
+                <span class="hint">Material, Time, Total per bunker (Bunker 1–10)</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 1200px;">
+                    <thead>
+                        <tr>
+                            <th class="grp sticky-col-1" style="min-width:90px;">Field</th>
+                            {% for n in range(1, 11) %}
+                            <th class="grp">Bunker {{ n }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" value="Material" readonly class="cell-input"></td>
+                            {% for n in range(1, 11) %}
+                            <td class="data-cell">
+                                <input type="text" name="bunker_material[]" placeholder="Material" class="cell-input">
+                                <input type="hidden" name="bunker_no[]" value="{{ n }}">
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" value="Time" readonly class="cell-input"></td>
+                            {% for n in range(1, 11) %}
+                            <td class="data-cell"><input type="number" step="0.01" name="bunker_time[]" placeholder="0.00" class="cell-input"></td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" value="Total" readonly class="cell-input"></td>
+                            {% for n in range(1, 11) %}
+                            <td class="data-cell"><input type="number" step="0.01" name="bunker_total[]" placeholder="0.00" class="cell-input"></td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============ PRODUCTION SUMMARY ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Production</h2>
+                <span class="hint">On Date / Up to Date</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 550px;">
+                    <thead>
+                        <tr>
+                            <th class="grp sticky-col-1" style="min-width:230px;">Parameter</th>
+                            <th class="grp">On Date</th>
+                            <th class="grp">Up to Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p_key, p_label, p_step in [
+                            ('energy_saf', 'Energy Consump SAF (MWh)', '0.01'),
+                            ('energy_aux', 'Energy Consump Aux (MWh)', '0.01'),
+                            ('energy_total', 'Energy Consump Total (MWh)', '0.01'),
+                            ('running_hours', 'Running Hours', '0.01'),
+                            ('avg_load', 'Average Load (MW)', '0.01'),
+                            ('production_mt', 'Production (MT)', '0.01'),
+                            ('sec_per_ton', 'Energy Consumption / Ton (MWh)', '0.001')
+                        ] %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" value="{{ p_label }}" readonly class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="{{ p_step }}" name="{{ p_key }}_on_date" placeholder="0.00" class="cell-input"></td>
+                            <td class="data-cell"><input type="number" step="{{ p_step }}" name="{{ p_key }}_upto_date" placeholder="0.00" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============ SHUT DOWN LOG ============ -->
+            <div class="section-title">
+                <div class="bar"></div>
+                <h2>Shut Down</h2>
+                <span class="hint">From / To / Duration / Reason</span>
+            </div>
+            <div class="table-panel" style="margin-bottom: 8px;">
+                <table style="min-width: 750px;">
+                    <thead>
+                        <tr>
+                            <th class="grp sticky-col-1" style="min-width:60px;">Sl No</th>
+                            <th class="grp">From</th><th class="grp">To</th><th class="grp">Duration</th><th class="grp">Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(10) %}
+                        <tr>
+                            <td class="data-cell sticky-col-1"><input type="text" name="shutdown_sl_no[]" value="{{ '%02d' % (i + 1) }}" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="shutdown_from[]" placeholder="HH:MM" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="shutdown_to[]" placeholder="HH:MM" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="shutdown_duration[]" placeholder="HH:MM" class="cell-input"></td>
+                            <td class="data-cell"><input type="text" name="shutdown_reason[]" placeholder="Reason" class="cell-input"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="submit-btn">💾 Save Page 5 to Database</button>
+            </div>
+        </form>
+        </div>
+        <!-- ============ END PAGE 5 ============ -->
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        function updateVfTotal() {
+            const actInputs = document.querySelectorAll('.vf-act');
+            let total = 0;
+            actInputs.forEach(inp => { total += parseFloat(inp.value) || 0; });
+            document.getElementById('vfTotal').value = total.toFixed(2);
+        }
+        document.querySelectorAll('.vf-act').forEach(inp => inp.addEventListener('input', updateVfTotal));
+
+        const TOTAL_PAGES = 5;
+        let currentPage = 1;
+        function goToPage(pageNum) {
+            if (pageNum < 1 || pageNum > TOTAL_PAGES) return;
+            currentPage = pageNum;
+            for (let p = 1; p <= TOTAL_PAGES; p++) {
+                document.getElementById('page' + p + 'Content').classList.toggle('active', p === pageNum);
+                document.getElementById('tabPage' + p).classList.toggle('active', p === pageNum);
+            }
+            document.getElementById('pagerPrev').classList.toggle('disabled', pageNum === 1);
+            document.getElementById('pagerNext').classList.toggle('disabled', pageNum === TOTAL_PAGES);
+        }
+
+        // Allow swiping left/right on touch devices to flip between pages
+        (function() {
+            let touchStartX = 0;
+            document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+            document.addEventListener('touchend', e => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const diff = touchEndX - touchStartX;
+                if (Math.abs(diff) < 60) return;
+                if (diff < 0) goToPage(currentPage + 1);   // swipe left -> next page
+                if (diff > 0) goToPage(currentPage - 1);   // swipe right -> previous page
+            }, { passive: true });
+        })();
+    </script>
+</body>
+</html>
