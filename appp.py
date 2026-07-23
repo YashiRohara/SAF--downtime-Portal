@@ -16,13 +16,14 @@ except Exception as e:
     print(f"💥 PostgreSQL Initialization Fault Trace: {e}")
 
 # -------------------------------------------------------------
-# 🔑 LOGIN ROUTE
+# 🔑 LOGIN ROUTE (Role Check Added)
 # -------------------------------------------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        selected_role = request.form.get('role')  # HTML Form se role lena
 
         try:
             conn = config.get_db_connection()
@@ -39,41 +40,58 @@ def login():
             if user:
                 user_id, db_user, db_pass, db_role, status = user[0], user[1], user[2], user[3], user[4]
                 
-                # Check status
+                # 1. Status Check
                 if status and str(status).lower() not in ['active', '1', 'true']:
-                    flash("⛔ Your account is inactive. Contact Admin.")
+                    flash("⛔ Your account is inactive. Contact Admin.", "danger")
                     return redirect(url_for('login'))
 
-                if db_pass == password:
-                    session['user_id'] = user_id
-                    session['username'] = db_user
-                    session['role'] = db_role
-                    
-                    flash(f"Welcome back, {db_user}!")
-                    return redirect(url_for('overview'))
-                else:
-                    flash("❌ Incorrect Password.")
+                # 2. Password Check
+                if db_pass != password:
+                    flash("❌ Incorrect Password.", "danger")
+                    return redirect(url_for('login'))
+
+                # 3. Role Matching Check (Case-insensitive)
+                if selected_role and selected_role.lower() != db_role.lower():
+                    flash(f"⚠️ Access Denied: User '{username}' is assigned as '{db_role}', not '{selected_role}'.", "danger")
+                    return redirect(url_for('login'))
+
+                # Session Successful
+                session['user_id'] = user_id
+                session['username'] = db_user
+                session['role'] = db_role
+                
+                flash(f"Welcome back, {db_user}!", "success")
+                return redirect(url_for('overview'))
+
             else:
-                flash("❌ User ID not found.")
+                flash("❌ User ID not found.", "danger")
 
         except Exception as e:
-            flash(f"⚠️ Database Error: {str(e)}")
+            flash(f"⚠️ Database Error: {str(e)}", "danger")
 
         return redirect(url_for('login'))
 
     return render_template('login.html')
 
-# 🔒 LOGIN REQUIRED DECORATOR
+
+# 🔒 LOGIN REQUIRED DECORATOR (Redirect Loop Fixed)
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session and 'username' not in session:
             flash("🔒 Please login first to access this page.", "warning")
-            return redirect(url_for('overview'))  # Ya login route agar aapke paas hai
+            return redirect(url_for('login'))  # Fixed: Redirect to login!
         return f(*args, **kwargs)
     return decorated_function
 
 
+# 🚪 LOGOUT ROUTE (MISSING ROUTE ADDED)
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("Successfully logged out.", "info")
+    return redirect(url_for('login'))
+    
 # 📊 HELPER ENGINES FOR REPORTS & DASHBOARDS
 def get_daily_performance_summary(report_date):
     """

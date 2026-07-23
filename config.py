@@ -3,22 +3,18 @@ import pandas as pd
 import psycopg2
 from dotenv import load_dotenv
 
-# 🌐 Environment variables load karna (.env file se)
 load_dotenv()
 
-# 🔐 PostgreSQL Database Authentication Coordinates
-# (Aap apne local .env file me DB_PASSWORD set kar sakte hain, default 'admin.123' rakha hai)
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "saf_production")
 DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "admin.123")  # 👈 Agar aapka PG password alag hai toh .env me badlein
+DB_PASSWORD = os.getenv("DB_PASSWORD", "admin.123")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "jindal_secret_security_token")
 EXCEL_FILE_PATH = "MIS 26-27.xlsx"
 
 def get_db_connection():
-    """Establishes an atomic transaction connection with PostgreSQL instance."""
     conn = psycopg2.connect(
         host=DB_HOST,
         database=DB_NAME,
@@ -29,11 +25,22 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Initializes schema components, users authentication table, and default seeds into PostgreSQL."""
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # 1. Target values tracking matrix table schema
+    # 🔑 1. USERS TABLE FOR ROLE-BASED LOGIN (ADDED FIX)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(20) DEFAULT 'Viewer',
+            status VARCHAR(20) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # 2. KPI TARGETS TABLE
     cur.execute("""
         CREATE TABLE IF NOT EXISTS kpi_targets (
             id SERIAL PRIMARY KEY,
@@ -50,7 +57,7 @@ def init_db():
         );
     """)
 
-    # 2. Main Production Data Table Base Schema
+    # 3. PRODUCTION DATA TABLE
     cur.execute("""
         CREATE TABLE IF NOT EXISTS saf_production_data (
             id SERIAL PRIMARY KEY,
@@ -63,7 +70,16 @@ def init_db():
         );
     """)
 
-    # 3. Insert initial KPI target row if empty
+    # 4. INITIAL SEEDS (Default Admin & Users Insert agar Empty ho)
+    cur.execute("SELECT COUNT(*) FROM users;")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO users (username, password, role, status) VALUES
+            ('EMP001', 'admin123', 'Admin', 'active'),
+            ('EMP002', 'operator123', 'Operator', 'active'),
+            ('EMP003', 'viewer123', 'Viewer', 'active');
+        """)
+
     cur.execute("SELECT COUNT(*) FROM kpi_targets;")
     if cur.fetchone()[0] == 0:
         cur.execute("""
@@ -71,7 +87,7 @@ def init_db():
             VALUES (203.0, 17052, 5.0, 3.5, 3.3, 95.0, 90.0, 120.0, 16000);
         """)
 
-    # 4. Google Sheet Config Table
+    # 5. GOOGLE SHEET CONFIG TABLE
     cur.execute("""
         CREATE TABLE IF NOT EXISTS gsheet_config (
             id SERIAL PRIMARY KEY,
@@ -80,7 +96,7 @@ def init_db():
         );
     """)
     
-    # 5. Dynamically Alter Base Table to Include Detailed SAF#1, SAF#2 Delays & Material Breakdown
+    # 6. ALTER COLUMNS IF NEEDED
     cur.execute("""
         ALTER TABLE saf_production_data 
         ADD COLUMN IF NOT EXISTS saf1_oprn_delay NUMERIC(5,2) DEFAULT 0.0,
@@ -105,7 +121,6 @@ def init_db():
     cur.close()
     conn.close()
 
-# 📊 Excel Engine (Kept 100% Untouched)
 def get_excel_data():
     try:
         if not os.path.exists(EXCEL_FILE_PATH):
